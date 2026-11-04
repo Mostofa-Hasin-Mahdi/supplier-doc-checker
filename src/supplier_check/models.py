@@ -15,6 +15,7 @@ class FieldStatus(StrEnum):
     FOUND = "FOUND"
     ABSENT = "ABSENT"
     UNCERTAIN = "UNCERTAIN"
+    DERIVED = "DERIVED"
 
 
 class Severity(StrEnum):
@@ -73,8 +74,10 @@ class FieldEvidence(BaseModel, Generic[T]):
     def validate_invariants(self) -> "FieldEvidence[T]":
         """Enforce invariants based on extraction status.
 
-        - FOUND: requires value is not None (and non-empty for str) AND non-empty evidence_quote.
-                 Falsy-but-valid values like Decimal("0") and False are valid FOUND values.
+        - FOUND: strictly requires value is not None (and non-empty for str) AND non-empty evidence_quote.
+                 Ordinary extracted fields MUST carry a non-empty verbatim quote.
+        - DERIVED: code-derived boolean fields; requires non-None boolean value. Can have evidence_quote
+                   or an absence_note explaining why it was derived.
         - ABSENT: requires value to be None.
         - UNCERTAIN: may carry anything.
         """
@@ -85,11 +88,19 @@ class FieldEvidence(BaseModel, Generic[T]):
                 raise ValueError("status FOUND requires a non-empty string value")
             if not self.evidence_quote or not self.evidence_quote.strip():
                 raise ValueError("status FOUND requires a non-empty evidence_quote")
+        elif self.status == FieldStatus.DERIVED:
+            if self.value is None:
+                raise ValueError("status DERIVED requires a non-None value")
+            if not isinstance(self.value, bool):
+                raise ValueError("status DERIVED is reserved for code-derived boolean fields")
+            if not self.evidence_quote and not self.absence_note:
+                raise ValueError("status DERIVED requires either an evidence_quote or an absence_note")
         elif self.status == FieldStatus.ABSENT:
             if self.value is not None:
                 raise ValueError("status ABSENT requires value to be None")
         # UNCERTAIN may carry anything
         return self
+
 
 
 class PurchaseRequestItem(BaseModel):

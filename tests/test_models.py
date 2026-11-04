@@ -267,12 +267,12 @@ def test_extracted_quote_model_construction() -> None:
             evidence_quote="1% of order value for each full week of delay",
         ),
         late_penalty_clause_present=FieldEvidence[bool](
-            status=FieldStatus.FOUND,
+            status=FieldStatus.DERIVED,
             value=True,
             evidence_quote="Late delivery penalty: 1% of order value",
         ),
         late_penalty_specifies_order_value=FieldEvidence[bool](
-            status=FieldStatus.FOUND,
+            status=FieldStatus.DERIVED,
             value=True,
             evidence_quote="1% of order value",
         ),
@@ -285,6 +285,80 @@ def test_extracted_quote_model_construction() -> None:
     assert quote_none_line.line_item_count is None
     assert quote_none_line.unit_price.value == Decimal("472.00")
     assert quote_none_line.quantity.value == Decimal("12000")
+
+
+def test_field_evidence_status_derived() -> None:
+    """Status DERIVED accepts boolean value with evidence_quote or absence_note."""
+    fe_with_quote = FieldEvidence[bool](
+        status=FieldStatus.DERIVED,
+        value=True,
+        evidence_quote="Late delivery penalty: 1% of order value",
+        grounded=True,
+    )
+    assert fe_with_quote.status == FieldStatus.DERIVED
+    assert fe_with_quote.value is True
+
+    fe_with_absence = FieldEvidence[bool](
+        status=FieldStatus.DERIVED,
+        value=False,
+        evidence_quote=None,
+        absence_note="No late delivery penalty clause found in terms",
+        grounded=True,
+    )
+    assert fe_with_absence.status == FieldStatus.DERIVED
+    assert fe_with_absence.value is False
+
+    # DERIVED requires a boolean value
+    with pytest.raises(ValidationError):
+        FieldEvidence[str](
+            status=FieldStatus.DERIVED,
+            value="not a bool",
+            evidence_quote="some quote",
+        )
+
+    # DERIVED requires either evidence_quote or absence_note
+    with pytest.raises(ValidationError):
+        FieldEvidence[bool](
+            status=FieldStatus.DERIVED,
+            value=True,
+            evidence_quote=None,
+            absence_note=None,
+        )
+
+
+def test_ordinary_field_found_without_quote_rejected() -> None:
+    """Ordinary extracted fields (price, qty, tin, bin, days, pct) must strictly reject FOUND without quote."""
+    # unit_price
+    with pytest.raises(ValidationError):
+        FieldEvidence[Decimal](
+            status=FieldStatus.FOUND,
+            value=Decimal("472.00"),
+            evidence_quote=None,
+        )
+
+    # quantity
+    with pytest.raises(ValidationError):
+        FieldEvidence[Decimal](
+            status=FieldStatus.FOUND,
+            value=Decimal("12000"),
+            evidence_quote="",
+        )
+
+    # tin
+    with pytest.raises(ValidationError):
+        FieldEvidence[str](
+            status=FieldStatus.FOUND,
+            value="101458013391",
+            evidence_quote=None,
+        )
+
+    # delivery_days
+    with pytest.raises(ValidationError):
+        FieldEvidence[int](
+            status=FieldStatus.FOUND,
+            value=24,
+            evidence_quote=None,
+        )
 
 
 def test_purchase_request_item() -> None:

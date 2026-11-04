@@ -46,9 +46,14 @@ select = [
     "B",   # flake8-bugbear
     "UP",  # pyupgrade
 ]
-ignore = []
+ignore = [
+    "E501",  # line length handled by ruff format
+]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "live: marks tests that make live API network calls",
+]

@@ -3,16 +3,39 @@
 # Do not hardcode these in source logic.
 
 rules:
-  # Price tolerance threshold in percentage (e.g., 0.05 for 5%)
-  price_tolerance_pct: 0.00
+  # Price tolerance thresholds in percentage
+  price_tolerance_pct: 3.0  # Unit price <= 3% over max is REVIEW; > 3% is REJECT
 
-  # Quantity tolerance threshold
-  quantity_tolerance_pct: 0.00
+  # Quantity tolerance threshold in percentage
+  quantity_tolerance_pct: 5.0  # Quantity differing by > 5% is REVIEW
 
-  # Payment terms required (e.g., Net 30, Net 60)
-  allowed_payment_terms:
-    - "Net 30"
-    - "Net 60"
+  # Advance payment limit in percentage
+  max_advance_pct: 20.0  # Advance > 20% is REJECT
 
-  # Whether to enforce strict currency match between purchase request and quote
+  # Delivery day limits
+  max_delivery_days: 45      # Delivery > 45 days is REJECT
+  review_delivery_days_min: 31  # Delivery 31 to 45 days is REVIEW
+  review_delivery_days_max: 45
+
+  # Payment terms day limits
+  min_payment_days: 30  # Payment terms outside 30 to 60 days is REVIEW
+  max_payment_days: 60
+
+  # Penalty clause rules
+  min_penalty_pct_per_week: 0.5  # Penalty must be >= 0.5% per week of delay
+  penalty_base_unstated_policy: review  # alternatives: accept, review
+
+  # Statutory Tax Registration Policy
+  tin_bin_policy: reject_if_either_missing  # alternatives: reject_if_both_missing, review_if_one_missing
+
+  # VAT rules
+  required_vat_percent: 15.0
+
+  # Quotation validity
+  min_validity_days: 30  # Validity < 30 days is REVIEW
+
+  # Arithmetic rounding tolerance (in currency units, e.g. BDT)
+  math_tolerance: 1.00
+
+  # Currency and item consistency
   strict_currency_match: true

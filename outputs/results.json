@@ -1,0 +1,445 @@
+[
+  {
+    "pdf": "data\\supplier-pack-01.pdf",
+    "pack": "supplier-pack-01",
+    "supplier": "Padma Textile Mills Ltd",
+    "item": "A",
+    "system_verdict": "Approve",
+    "final_verdict": "Approve",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [],
+    "triggered_rules": [],
+    "audit_log": [
+      "[2026-11-04T20:27:50.595441+00:00] Starting ingest for: data\\supplier-pack-01.pdf",
+      "[2026-11-04T20:27:50.602738+00:00] Ingested 1036 characters from supplier-pack-01.pdf",
+      "[2026-11-04T20:27:50.606268+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.611142+00:00] Compare completed: matched_pr=A, results=3",
+      "[2026-11-04T20:27:50.612559+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:27:50.613964+00:00] Decision made: APPROVE (display: Approve)",
+      "[2026-11-04T20:27:50.614981+00:00] Report generated: system_verdict=Approve, final_verdict=Approve",
+      "[2026-11-04T20:28:42.826450+00:00] Starting ingest for: data\\supplier-pack-01.pdf",
+      "[2026-11-04T20:28:42.833120+00:00] Ingested 1036 characters from supplier-pack-01.pdf",
+      "[2026-11-04T20:28:42.837174+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:42.841192+00:00] Compare completed: matched_pr=A, results=3",
+      "[2026-11-04T20:28:42.843199+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:28:42.844203+00:00] Decision made: APPROVE (display: Approve)",
+      "[2026-11-04T20:28:42.845206+00:00] Report generated: system_verdict=Approve, final_verdict=Approve",
+      "[2026-11-04T20:29:13.878305+00:00] Starting ingest for: data\\supplier-pack-01.pdf",
+      "[2026-11-04T20:29:13.884487+00:00] Ingested 1036 characters from supplier-pack-01.pdf",
+      "[2026-11-04T20:29:13.887551+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:13.891573+00:00] Compare completed: matched_pr=A, results=3",
+      "[2026-11-04T20:29:13.894623+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:29:13.895655+00:00] Decision made: APPROVE (display: Approve)",
+      "[2026-11-04T20:29:13.895655+00:00] Report generated: system_verdict=Approve, final_verdict=Approve"
+    ]
+  },
+  {
+    "pdf": "data\\supplier-pack-02.pdf",
+    "pack": "supplier-pack-02",
+    "supplier": "Jamuna Trims and Accessories",
+    "item": "B",
+    "system_verdict": "Approve",
+    "final_verdict": "Approve",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [],
+    "triggered_rules": [],
+    "audit_log": [
+      "[2026-11-04T20:27:50.632492+00:00] Starting ingest for: data\\supplier-pack-02.pdf",
+      "[2026-11-04T20:27:50.639187+00:00] Ingested 1018 characters from supplier-pack-02.pdf",
+      "[2026-11-04T20:27:50.639698+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.644291+00:00] Compare completed: matched_pr=B, results=3",
+      "[2026-11-04T20:27:50.646395+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:27:50.646395+00:00] Decision made: APPROVE (display: Approve)",
+      "[2026-11-04T20:27:50.647479+00:00] Report generated: system_verdict=Approve, final_verdict=Approve",
+      "[2026-11-04T20:28:42.862063+00:00] Starting ingest for: data\\supplier-pack-02.pdf",
+      "[2026-11-04T20:28:42.868240+00:00] Ingested 1018 characters from supplier-pack-02.pdf",
+      "[2026-11-04T20:28:42.869249+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:42.873272+00:00] Compare completed: matched_pr=B, results=3",
+      "[2026-11-04T20:28:42.875475+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:28:42.876480+00:00] Decision made: APPROVE (display: Approve)",
+      "[2026-11-04T20:28:42.877483+00:00] Report generated: system_verdict=Approve, final_verdict=Approve",
+      "[2026-11-04T20:29:13.914356+00:00] Starting ingest for: data\\supplier-pack-02.pdf",
+      "[2026-11-04T20:29:13.921386+00:00] Ingested 1018 characters from supplier-pack-02.pdf",
+      "[2026-11-04T20:29:13.921386+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:13.926530+00:00] Compare completed: matched_pr=B, results=3",
+      "[2026-11-04T20:29:13.928543+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:29:13.929556+00:00] Decision made: APPROVE (display: Approve)",
+      "[2026-11-04T20:29:13.929556+00:00] Report generated: system_verdict=Approve, final_verdict=Approve"
+    ]
+  },
+  {
+    "pdf": "data\\supplier-pack-03.pdf",
+    "pack": "supplier-pack-03",
+    "supplier": "Karnaphuli Yarn Traders",
+    "item": "C",
+    "system_verdict": "Reject",
+    "final_verdict": "Reject",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [
+      "RULE_REJ_01_PRICE_MAX: 229.00 is 9.05% above max 210.00 (limit 3.0%)"
+    ],
+    "triggered_rules": [
+      {
+        "rule_id": "RULE_REJ_01_PRICE_MAX",
+        "severity": "REJECT",
+        "message": "229.00 is 9.05% above max 210.00 (limit 3.0%)",
+        "evidence_quote": "229.00"
+      }
+    ],
+    "audit_log": [
+      "[2026-11-04T20:27:50.664544+00:00] Starting ingest for: data\\supplier-pack-03.pdf",
+      "[2026-11-04T20:27:50.670576+00:00] Ingested 969 characters from supplier-pack-03.pdf",
+      "[2026-11-04T20:27:50.670576+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.674806+00:00] Compare completed: matched_pr=C, results=3",
+      "[2026-11-04T20:27:50.677249+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:27:50.677249+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:27:50.678330+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:28:42.894526+00:00] Starting ingest for: data\\supplier-pack-03.pdf",
+      "[2026-11-04T20:28:42.900056+00:00] Ingested 969 characters from supplier-pack-03.pdf",
+      "[2026-11-04T20:28:42.901066+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:42.905084+00:00] Compare completed: matched_pr=C, results=3",
+      "[2026-11-04T20:28:42.907086+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:28:42.908265+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:28:42.908265+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:29:13.946379+00:00] Starting ingest for: data\\supplier-pack-03.pdf",
+      "[2026-11-04T20:29:13.951858+00:00] Ingested 969 characters from supplier-pack-03.pdf",
+      "[2026-11-04T20:29:13.953097+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:13.958114+00:00] Compare completed: matched_pr=C, results=3",
+      "[2026-11-04T20:29:13.960189+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:29:13.961365+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:29:13.961365+00:00] Report generated: system_verdict=Reject, final_verdict=Reject"
+    ]
+  },
+  {
+    "pdf": "data\\supplier-pack-04.pdf",
+    "pack": "supplier-pack-04",
+    "supplier": "Surma Packaging Industries",
+    "item": "D",
+    "system_verdict": "Needs a person to check",
+    "final_verdict": "Pending Review",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [
+      "[RULE_REV_01_PRICE_TOLERANCE] 6.65 is 2.31% above max 6.50 (within 3.0% tolerance) (quote: '6.65')"
+    ],
+    "triggered_rules": [
+      {
+        "rule_id": "RULE_REV_01_PRICE_TOLERANCE",
+        "severity": "REVIEW",
+        "message": "6.65 is 2.31% above max 6.50 (within 3.0% tolerance)",
+        "evidence_quote": "6.65"
+      }
+    ],
+    "audit_log": [
+      "[2026-11-04T20:27:50.695138+00:00] Starting ingest for: data\\supplier-pack-04.pdf",
+      "[2026-11-04T20:27:50.701451+00:00] Ingested 952 characters from supplier-pack-04.pdf",
+      "[2026-11-04T20:27:50.702453+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.706679+00:00] Compare completed: matched_pr=D, results=3",
+      "[2026-11-04T20:27:50.709694+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:27:50.709694+00:00] Decision made: NEEDS_REVIEW (display: Needs a person to check)",
+      "[2026-11-04T20:27:50.711051+00:00] Pausing for human review via interrupt().",
+      "[2026-11-04T20:28:42.924883+00:00] Starting ingest for: data\\supplier-pack-04.pdf",
+      "[2026-11-04T20:28:42.930925+00:00] Ingested 952 characters from supplier-pack-04.pdf",
+      "[2026-11-04T20:28:42.931930+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:42.936954+00:00] Compare completed: matched_pr=D, results=3",
+      "[2026-11-04T20:28:42.938962+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:28:42.938962+00:00] Decision made: NEEDS_REVIEW (display: Needs a person to check)",
+      "[2026-11-04T20:28:42.939983+00:00] Pausing for human review via interrupt().",
+      "[2026-11-04T20:29:13.978914+00:00] Starting ingest for: data\\supplier-pack-04.pdf",
+      "[2026-11-04T20:29:13.984940+00:00] Ingested 952 characters from supplier-pack-04.pdf",
+      "[2026-11-04T20:29:13.985941+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:13.990397+00:00] Compare completed: matched_pr=D, results=3",
+      "[2026-11-04T20:29:13.992453+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:29:13.992453+00:00] Decision made: NEEDS_REVIEW (display: Needs a person to check)",
+      "[2026-11-04T20:29:13.993546+00:00] Pausing for human review via interrupt()."
+    ]
+  },
+  {
+    "pdf": "data\\supplier-pack-05.pdf",
+    "pack": "supplier-pack-05",
+    "supplier": "Meghna Carton Works",
+    "item": "E",
+    "system_verdict": "Reject",
+    "final_verdict": "Reject",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [
+      "RULE_REJ_02_ADVANCE_MAX: Advance payment requested is 40%, exceeding maximum allowed 20.0%"
+    ],
+    "triggered_rules": [
+      {
+        "rule_id": "RULE_REJ_02_ADVANCE_MAX",
+        "severity": "REJECT",
+        "message": "Advance payment requested is 40%, exceeding maximum allowed 20.0%",
+        "evidence_quote": "1. Payment. 40% advance payable with the purchase order. 40% advance with the purchase order, balance 60%\nwithin 30 days of delivery."
+      }
+    ],
+    "audit_log": [
+      "[2026-11-04T20:27:50.724878+00:00] Starting ingest for: data\\supplier-pack-05.pdf",
+      "[2026-11-04T20:27:50.731914+00:00] Ingested 971 characters from supplier-pack-05.pdf",
+      "[2026-11-04T20:27:50.732916+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.737420+00:00] Compare completed: matched_pr=E, results=3",
+      "[2026-11-04T20:27:50.740463+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:27:50.740463+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:27:50.741465+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:28:42.956384+00:00] Starting ingest for: data\\supplier-pack-05.pdf",
+      "[2026-11-04T20:28:42.962543+00:00] Ingested 971 characters from supplier-pack-05.pdf",
+      "[2026-11-04T20:28:42.963553+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:42.968624+00:00] Compare completed: matched_pr=E, results=3",
+      "[2026-11-04T20:28:42.970659+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:28:42.971663+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:28:42.972695+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:29:14.009326+00:00] Starting ingest for: data\\supplier-pack-05.pdf",
+      "[2026-11-04T20:29:14.016357+00:00] Ingested 971 characters from supplier-pack-05.pdf",
+      "[2026-11-04T20:29:14.017362+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:14.021626+00:00] Compare completed: matched_pr=E, results=3",
+      "[2026-11-04T20:29:14.023649+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:29:14.024654+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:29:14.025659+00:00] Report generated: system_verdict=Reject, final_verdict=Reject"
+    ]
+  },
+  {
+    "pdf": "data\\supplier-pack-06.pdf",
+    "pack": "supplier-pack-06",
+    "supplier": "Teesta Fabrics Ltd",
+    "item": "A",
+    "system_verdict": "Reject",
+    "final_verdict": "Reject",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [
+      "RULE_REJ_03_NO_PENALTY: No late-delivery penalty clause found in quotation terms"
+    ],
+    "triggered_rules": [
+      {
+        "rule_id": "RULE_REJ_03_NO_PENALTY",
+        "severity": "REJECT",
+        "message": "No late-delivery penalty clause found in quotation terms",
+        "evidence_quote": "delivery.\n2. Delivery. Delivery within 27 days of PO."
+      }
+    ],
+    "audit_log": [
+      "[2026-11-04T20:27:50.759770+00:00] Starting ingest for: data\\supplier-pack-06.pdf",
+      "[2026-11-04T20:27:50.766080+00:00] Ingested 885 characters from supplier-pack-06.pdf",
+      "[2026-11-04T20:27:50.767081+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.771454+00:00] Compare completed: matched_pr=A, results=3",
+      "[2026-11-04T20:27:50.772760+00:00] Rules completed: evaluated 10 policy rules.",
+      "[2026-11-04T20:27:50.773788+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:27:50.774790+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:28:42.990915+00:00] Starting ingest for: data\\supplier-pack-06.pdf",
+      "[2026-11-04T20:28:42.997029+00:00] Ingested 885 characters from supplier-pack-06.pdf",
+      "[2026-11-04T20:28:42.998034+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:43.003176+00:00] Compare completed: matched_pr=A, results=3",
+      "[2026-11-04T20:28:43.005358+00:00] Rules completed: evaluated 10 policy rules.",
+      "[2026-11-04T20:28:43.006362+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:28:43.006362+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:29:14.044393+00:00] Starting ingest for: data\\supplier-pack-06.pdf",
+      "[2026-11-04T20:29:14.050413+00:00] Ingested 885 characters from supplier-pack-06.pdf",
+      "[2026-11-04T20:29:14.051417+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:14.055437+00:00] Compare completed: matched_pr=A, results=3",
+      "[2026-11-04T20:29:14.057455+00:00] Rules completed: evaluated 10 policy rules.",
+      "[2026-11-04T20:29:14.058458+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:29:14.059462+00:00] Report generated: system_verdict=Reject, final_verdict=Reject"
+    ]
+  },
+  {
+    "pdf": "data\\supplier-pack-07.pdf",
+    "pack": "supplier-pack-07",
+    "supplier": "Rupsha Zipper Factory",
+    "item": "B",
+    "system_verdict": "Needs a person to check",
+    "final_verdict": "Pending Review",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [
+      "[RULE_REV_02_QTY_TOLERANCE] 16500 is 17.50% below requested 20000 (tolerance 5.0%) (quote: '16,500')"
+    ],
+    "triggered_rules": [
+      {
+        "rule_id": "RULE_REV_02_QTY_TOLERANCE",
+        "severity": "REVIEW",
+        "message": "16500 is 17.50% below requested 20000 (tolerance 5.0%)",
+        "evidence_quote": "16,500"
+      }
+    ],
+    "audit_log": [
+      "[2026-11-04T20:27:50.789059+00:00] Starting ingest for: data\\supplier-pack-07.pdf",
+      "[2026-11-04T20:27:50.794526+00:00] Ingested 921 characters from supplier-pack-07.pdf",
+      "[2026-11-04T20:27:50.794526+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.799304+00:00] Compare completed: matched_pr=B, results=3",
+      "[2026-11-04T20:27:50.801307+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:27:50.802452+00:00] Decision made: NEEDS_REVIEW (display: Needs a person to check)",
+      "[2026-11-04T20:27:50.802452+00:00] Pausing for human review via interrupt().",
+      "[2026-11-04T20:28:43.023775+00:00] Starting ingest for: data\\supplier-pack-07.pdf",
+      "[2026-11-04T20:28:43.030959+00:00] Ingested 921 characters from supplier-pack-07.pdf",
+      "[2026-11-04T20:28:43.030959+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:43.035285+00:00] Compare completed: matched_pr=B, results=3",
+      "[2026-11-04T20:28:43.038295+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:28:43.039303+00:00] Decision made: NEEDS_REVIEW (display: Needs a person to check)",
+      "[2026-11-04T20:28:43.039303+00:00] Pausing for human review via interrupt().",
+      "[2026-11-04T20:29:14.078375+00:00] Starting ingest for: data\\supplier-pack-07.pdf",
+      "[2026-11-04T20:29:14.083859+00:00] Ingested 921 characters from supplier-pack-07.pdf",
+      "[2026-11-04T20:29:14.084862+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:14.088910+00:00] Compare completed: matched_pr=B, results=3",
+      "[2026-11-04T20:29:14.091924+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:29:14.091924+00:00] Decision made: NEEDS_REVIEW (display: Needs a person to check)",
+      "[2026-11-04T20:29:14.092926+00:00] Pausing for human review via interrupt()."
+    ]
+  },
+  {
+    "pdf": "data\\supplier-pack-08.pdf",
+    "pack": "supplier-pack-08",
+    "supplier": "Bhairab Thread and Co",
+    "item": "C",
+    "system_verdict": "Reject",
+    "final_verdict": "Reject",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [
+      "RULE_REV_10_PENALTY_AMBIGUOUS: Penalty clause does not explicitly state calculation base as 'order value'",
+      "RULE_REJ_05_TAX_ID: Supplier TIN and BIN registration is missing"
+    ],
+    "triggered_rules": [
+      {
+        "rule_id": "RULE_REV_10_PENALTY_AMBIGUOUS",
+        "severity": "REVIEW",
+        "message": "Penalty clause does not explicitly state calculation base as 'order value'",
+        "evidence_quote": "3. Delay. Late delivery penalty of 0.5% per week of delay."
+      },
+      {
+        "rule_id": "RULE_REJ_05_TAX_ID",
+        "severity": "REJECT",
+        "message": "Supplier TIN and BIN registration is missing",
+        "evidence_quote": "Supplier registration details available on request."
+      }
+    ],
+    "audit_log": [
+      "[2026-11-04T20:27:50.816342+00:00] Starting ingest for: data\\supplier-pack-08.pdf",
+      "[2026-11-04T20:27:50.822416+00:00] Ingested 945 characters from supplier-pack-08.pdf",
+      "[2026-11-04T20:27:50.823420+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.827438+00:00] Compare completed: matched_pr=C, results=3",
+      "[2026-11-04T20:27:50.829447+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:27:50.830452+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:27:50.830452+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:28:43.054702+00:00] Starting ingest for: data\\supplier-pack-08.pdf",
+      "[2026-11-04T20:28:43.061749+00:00] Ingested 945 characters from supplier-pack-08.pdf",
+      "[2026-11-04T20:28:43.061749+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:43.066814+00:00] Compare completed: matched_pr=C, results=3",
+      "[2026-11-04T20:28:43.068816+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:28:43.068816+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:28:43.070007+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:29:14.111041+00:00] Starting ingest for: data\\supplier-pack-08.pdf",
+      "[2026-11-04T20:29:14.117079+00:00] Ingested 945 characters from supplier-pack-08.pdf",
+      "[2026-11-04T20:29:14.118090+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:14.121101+00:00] Compare completed: matched_pr=C, results=3",
+      "[2026-11-04T20:29:14.124113+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:29:14.125116+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:29:14.125116+00:00] Report generated: system_verdict=Reject, final_verdict=Reject"
+    ]
+  },
+  {
+    "pdf": "data\\supplier-pack-09.pdf",
+    "pack": "supplier-pack-09",
+    "supplier": "Dhaleshwari Poly Pack",
+    "item": "D",
+    "system_verdict": "Needs a person to check",
+    "final_verdict": "Pending Review",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [
+      "[RULE_REV_03_PAYMENT_TERMS] Payment terms days are unclear, range specified, or missing (quote: '1. Payment. 5% advance payable with the purchase order. Payment within 30 to 90 days as agreed by both\nparties.')",
+      "[RULE_REV_06_MATH_SUBTOTAL] Subtotal 322000.00 does not equal Qty x Price (320000.00) within tolerance 1.0 (quote: 'Subtotal\n322,000.00')"
+    ],
+    "triggered_rules": [
+      {
+        "rule_id": "RULE_REV_03_PAYMENT_TERMS",
+        "severity": "REVIEW",
+        "message": "Payment terms days are unclear, range specified, or missing",
+        "evidence_quote": "1. Payment. 5% advance payable with the purchase order. Payment within 30 to 90 days as agreed by both\nparties."
+      },
+      {
+        "rule_id": "RULE_REV_06_MATH_SUBTOTAL",
+        "severity": "REVIEW",
+        "message": "Subtotal 322000.00 does not equal Qty x Price (320000.00) within tolerance 1.0",
+        "evidence_quote": "Subtotal\n322,000.00"
+      }
+    ],
+    "audit_log": [
+      "[2026-11-04T20:27:50.846201+00:00] Starting ingest for: data\\supplier-pack-09.pdf",
+      "[2026-11-04T20:27:50.852280+00:00] Ingested 958 characters from supplier-pack-09.pdf",
+      "[2026-11-04T20:27:50.852280+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.857510+00:00] Compare completed: matched_pr=D, results=3",
+      "[2026-11-04T20:27:50.858826+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:27:50.859829+00:00] Decision made: NEEDS_REVIEW (display: Needs a person to check)",
+      "[2026-11-04T20:27:50.860831+00:00] Pausing for human review via interrupt().",
+      "[2026-11-04T20:28:43.085190+00:00] Starting ingest for: data\\supplier-pack-09.pdf",
+      "[2026-11-04T20:28:43.091212+00:00] Ingested 958 characters from supplier-pack-09.pdf",
+      "[2026-11-04T20:28:43.092212+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:43.096474+00:00] Compare completed: matched_pr=D, results=3",
+      "[2026-11-04T20:28:43.099866+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:28:43.099866+00:00] Decision made: NEEDS_REVIEW (display: Needs a person to check)",
+      "[2026-11-04T20:28:43.100959+00:00] Pausing for human review via interrupt().",
+      "[2026-11-04T20:29:14.153178+00:00] Starting ingest for: data\\supplier-pack-09.pdf",
+      "[2026-11-04T20:29:14.160429+00:00] Ingested 958 characters from supplier-pack-09.pdf",
+      "[2026-11-04T20:29:14.160429+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:14.165078+00:00] Compare completed: matched_pr=D, results=3",
+      "[2026-11-04T20:29:14.167085+00:00] Rules completed: evaluated 12 policy rules.",
+      "[2026-11-04T20:29:14.167085+00:00] Decision made: NEEDS_REVIEW (display: Needs a person to check)",
+      "[2026-11-04T20:29:14.168588+00:00] Pausing for human review via interrupt()."
+    ]
+  },
+  {
+    "pdf": "data\\supplier-pack-10.pdf",
+    "pack": "supplier-pack-10",
+    "supplier": "Kushiyara Box Industries",
+    "item": "E",
+    "system_verdict": "Reject",
+    "final_verdict": "Reject",
+    "reviewer_note": null,
+    "extractor_used": "fallback",
+    "reasons": [
+      "RULE_REJ_06_DELIVERY_MAX: Delivery promised in 60 days, exceeding maximum allowed 45 days",
+      "RULE_REV_05_VAT_PRESENTATION: VAT is not shown separately at 15% (e.g. VAT included or missing breakdown)"
+    ],
+    "triggered_rules": [
+      {
+        "rule_id": "RULE_REJ_06_DELIVERY_MAX",
+        "severity": "REJECT",
+        "message": "Delivery promised in 60 days, exceeding maximum allowed 45 days",
+        "evidence_quote": "delivery.\n2. Delivery. Delivery within 60 days of PO."
+      },
+      {
+        "rule_id": "RULE_REV_05_VAT_PRESENTATION",
+        "severity": "REVIEW",
+        "message": "VAT is not shown separately at 15% (e.g. VAT included or missing breakdown)",
+        "evidence_quote": "Total (all taxes included)\n282,000.00"
+      }
+    ],
+    "audit_log": [
+      "[2026-11-04T20:27:50.872614+00:00] Starting ingest for: data\\supplier-pack-10.pdf",
+      "[2026-11-04T20:27:50.879064+00:00] Ingested 939 characters from supplier-pack-10.pdf",
+      "[2026-11-04T20:27:50.880065+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:27:50.884277+00:00] Compare completed: matched_pr=E, results=3",
+      "[2026-11-04T20:27:50.886294+00:00] Rules completed: evaluated 10 policy rules.",
+      "[2026-11-04T20:27:50.886294+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:27:50.887298+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:28:43.122765+00:00] Starting ingest for: data\\supplier-pack-10.pdf",
+      "[2026-11-04T20:28:43.129338+00:00] Ingested 939 characters from supplier-pack-10.pdf",
+      "[2026-11-04T20:28:43.129338+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:28:43.134374+00:00] Compare completed: matched_pr=E, results=3",
+      "[2026-11-04T20:28:43.136381+00:00] Rules completed: evaluated 10 policy rules.",
+      "[2026-11-04T20:28:43.137385+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:28:43.137385+00:00] Report generated: system_verdict=Reject, final_verdict=Reject",
+      "[2026-11-04T20:29:14.183217+00:00] Starting ingest for: data\\supplier-pack-10.pdf",
+      "[2026-11-04T20:29:14.188524+00:00] Ingested 939 characters from supplier-pack-10.pdf",
+      "[2026-11-04T20:29:14.190037+00:00] Extracted using fallback extractor.",
+      "[2026-11-04T20:29:14.193053+00:00] Compare completed: matched_pr=E, results=3",
+      "[2026-11-04T20:29:14.196095+00:00] Rules completed: evaluated 10 policy rules.",
+      "[2026-11-04T20:29:14.196095+00:00] Decision made: REJECT (display: Reject)",
+      "[2026-11-04T20:29:14.197099+00:00] Report generated: system_verdict=Reject, final_verdict=Reject"
+    ]
+  }
+]

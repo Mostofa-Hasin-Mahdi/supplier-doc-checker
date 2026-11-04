@@ -59,3 +59,8 @@ Thumbs.db
 
 # Task original source folder (ignored to avoid duplication)
 task1-procurement/
+
+# Checkpoint databases
+*.sqlite
+*.sqlite-journal
+*.db

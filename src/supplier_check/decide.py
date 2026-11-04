@@ -44,15 +44,16 @@ def make_decision(
         add_reason(f"Grounding failure: {g_err}")
 
     # Process evaluated rule results
+    seen_rule_ids: set[str] = set()
     for res in rule_results:
-        if res.severity == Severity.REJECT:
-            has_reject = True
-            triggered_rules.append(res)
-            quote_suffix = f" (quote: '{res.evidence_quote}')" if res.evidence_quote and res.evidence_quote != "N/A" else ""
-            add_reason(f"[{res.rule_id}] {res.message}{quote_suffix}")
-        elif res.severity == Severity.REVIEW:
-            has_review = True
-            triggered_rules.append(res)
+        if res.severity in {Severity.REJECT, Severity.REVIEW}:
+            if res.rule_id not in seen_rule_ids:
+                seen_rule_ids.add(res.rule_id)
+                triggered_rules.append(res)
+            if res.severity == Severity.REJECT:
+                has_reject = True
+            else:
+                has_review = True
             quote_suffix = f" (quote: '{res.evidence_quote}')" if res.evidence_quote and res.evidence_quote != "N/A" else ""
             add_reason(f"[{res.rule_id}] {res.message}{quote_suffix}")
 

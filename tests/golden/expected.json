@@ -1,0 +1,13 @@
+{
+  "supplier-pack-01": "APPROVE",
+  "supplier-pack-02": "APPROVE",
+  "supplier-pack-03": "REJECT",
+  "supplier-pack-04": "NEEDS_REVIEW",
+  "supplier-pack-05": "REJECT",
+  "supplier-pack-06": "REJECT",
+  "supplier-pack-07": "NEEDS_REVIEW",
+  "supplier-pack-08": "REJECT",
+  "supplier-pack-09": "NEEDS_REVIEW",
+  "supplier-pack-10": "REJECT"
+}
+

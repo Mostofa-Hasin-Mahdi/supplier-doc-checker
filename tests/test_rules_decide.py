@@ -464,6 +464,7 @@ def test_uncertain_fields_never_produce_pass() -> None:
         payment_days=FieldEvidence[int](status=FieldStatus.UNCERTAIN, value=None),
         validity_days=FieldEvidence[int](status=FieldStatus.UNCERTAIN, value=None),
         late_penalty_clause_present=FieldEvidence[bool](status=FieldStatus.UNCERTAIN, value=None),
+        late_penalty_percent_per_week=FieldEvidence[Decimal](status=FieldStatus.UNCERTAIN, value=None),
     )
     all_results = run_all_policy_rules(quote, config)
     # Filter non-pass results

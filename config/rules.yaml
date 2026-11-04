@@ -1,0 +1,18 @@
+# Procurement Rule Thresholds and Configuration
+# Note: Keep all policy limits, thresholds, and comparison margins here.
+# Do not hardcode these in source logic.
+
+rules:
+  # Price tolerance threshold in percentage (e.g., 0.05 for 5%)
+  price_tolerance_pct: 0.00
+
+  # Quantity tolerance threshold
+  quantity_tolerance_pct: 0.00
+
+  # Payment terms required (e.g., Net 30, Net 60)
+  allowed_payment_terms:
+    - "Net 30"
+    - "Net 60"
+
+  # Whether to enforce strict currency match between purchase request and quote
+  strict_currency_match: true

@@ -43,22 +43,38 @@ def make_decision(
         has_review = True
         add_reason(f"Grounding failure: {g_err}")
 
-    # Process evaluated rule results
+    # Process evaluated rule results: separate reject and review to ensure Reject first
+    reject_rules: list[RuleResult] = []
+    review_rules: list[RuleResult] = []
     seen_rule_ids: set[str] = set()
+
     for res in rule_results:
         if res.severity in {Severity.REJECT, Severity.REVIEW}:
             if res.rule_id not in seen_rule_ids:
                 seen_rule_ids.add(res.rule_id)
-                triggered_rules.append(res)
-            if res.severity == Severity.REJECT:
-                has_reject = True
-            else:
-                has_review = True
-            quote_suffix = f" (quote: '{res.evidence_quote}')" if res.evidence_quote and res.evidence_quote != "N/A" else ""
-            add_reason(f"[{res.rule_id}] {res.message}{quote_suffix}")
+                if res.severity == Severity.REJECT:
+                    reject_rules.append(res)
+                else:
+                    review_rules.append(res)
 
-    # Precedence resolution
-    if has_reject:
+    for res in reject_rules:
+        has_reject = True
+        triggered_rules.append(res)
+        quote_suffix = f" (quote: '{res.evidence_quote}')" if res.evidence_quote and res.evidence_quote != "N/A" else ""
+        add_reason(f"[{res.rule_id}] {res.message}{quote_suffix}")
+
+    for res in review_rules:
+        has_review = True
+        triggered_rules.append(res)
+        quote_suffix = f" (quote: '{res.evidence_quote}')" if res.evidence_quote and res.evidence_quote != "N/A" else ""
+        add_reason(f"[{res.rule_id}] {res.message}{quote_suffix}")
+
+    # Precedence resolution:
+    # "Never Guess" Policy: Any extraction or grounding error strictly forces NEEDS_REVIEW.
+    # An unverified document must NEVER be rejected or approved based on ungrounded/corrupted text.
+    if ext_errs or g_errs:
+        final_verdict = Verdict.NEEDS_REVIEW
+    elif has_reject:
         final_verdict = Verdict.REJECT
     elif has_review:
         final_verdict = Verdict.NEEDS_REVIEW

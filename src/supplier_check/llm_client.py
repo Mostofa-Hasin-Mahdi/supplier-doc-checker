@@ -530,10 +530,16 @@ class LLMClient(ABC):
 class GeminiClient(LLMClient):
     """Production client using Google GenAI SDK (google-genai) with JSON output and temperature 0."""
 
-    def __init__(self, api_key: str | None = None, model: str | None = None) -> None:
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str | None = None,
+        timeout_seconds: int = 30,
+    ) -> None:
         self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         # Default to active, free-tier available Gemini 3.5 Flash-Lite
         self.model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        self.timeout_seconds = timeout_seconds
         if not self.api_key:
             logger.warning("GEMINI_API_KEY not configured. Calls to GeminiClient.extract will raise.")
 
@@ -547,7 +553,9 @@ class GeminiClient(LLMClient):
         from google import genai
         from google.genai import types
 
-        client = genai.Client(api_key=self.api_key)
+        # Configure 30-second timeout per call via HttpOptions (timeout is in milliseconds)
+        http_options = types.HttpOptions(timeout=self.timeout_seconds * 1000)
+        client = genai.Client(api_key=self.api_key, http_options=http_options)
         prompt = EXTRACTION_PROMPT.format(document_text=document_text)
 
         config = types.GenerateContentConfig(
@@ -557,7 +565,7 @@ class GeminiClient(LLMClient):
         )
 
         last_err: Exception | None = None
-        for attempt in range(3):
+        for attempt in range(2):
             try:
                 response = client.models.generate_content(
                     model=self.model_name,
@@ -569,7 +577,8 @@ class GeminiClient(LLMClient):
             except Exception as e:
                 last_err = e
                 logger.warning("Gemini extract attempt %d error: %s", attempt + 1, e)
-                time.sleep(2 * (attempt + 1))
+                if attempt < 1:
+                    time.sleep(2)
 
         if last_err:
             raise last_err

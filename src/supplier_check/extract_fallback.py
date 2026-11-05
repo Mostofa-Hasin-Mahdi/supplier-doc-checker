@@ -245,12 +245,18 @@ def extract_fallback_from_text(document_text: str) -> ExtractedQuote:
 
     # 11. Payment Terms & Advance
     m_pay = re.search(
-        r"\b(?:1\.\s*)?Payment\.\s*([^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
+        r"(?:^|\n)\s*(1\.\s*Payment\.\s*[^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
         terms_block,
         re.IGNORECASE,
     )
-    pay_quote = m_pay.group(0).strip() if m_pay else terms_block
-    pay_text = m_pay.group(1).strip() if m_pay else None
+    if not m_pay:
+        m_pay = re.search(
+            r"\bPayment\.\s*([^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
+            terms_block,
+            re.IGNORECASE,
+        )
+    pay_quote = m_pay.group(1).strip() if m_pay and m_pay.lastindex else (m_pay.group(0).strip() if m_pay else terms_block)
+    pay_text = re.sub(r"^(?:1\.\s*)?Payment\.\s*", "", pay_quote, flags=re.IGNORECASE).strip() if m_pay else None
 
     adv_val, adv_uncertain = parse_advance(pay_text)
     if not adv_uncertain and adv_val is not None:
@@ -284,12 +290,18 @@ def extract_fallback_from_text(document_text: str) -> ExtractedQuote:
 
     # 12. Delivery Terms
     m_del = re.search(
-        r"\b(?:2\.\s*)?Delivery\.\s*([^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
+        r"(?:^|\n)\s*(2\.\s*Delivery\.\s*[^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
         terms_block,
         re.IGNORECASE,
     )
-    del_quote = m_del.group(0).strip() if m_del else terms_block
-    del_text = m_del.group(1).strip() if m_del else None
+    if not m_del:
+        m_del = re.search(
+            r"\bDelivery\.\s*([^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
+            terms_block,
+            re.IGNORECASE,
+        )
+    del_quote = m_del.group(1).strip() if m_del and m_del.lastindex else (m_del.group(0).strip() if m_del else terms_block)
+    del_text = re.sub(r"^(?:2\.\s*)?Delivery\.\s*", "", del_quote, flags=re.IGNORECASE).strip() if m_del else None
     del_days_val = parse_days(del_text)
 
     fe_del_terms = FieldEvidence[str](
@@ -308,12 +320,18 @@ def extract_fallback_from_text(document_text: str) -> ExtractedQuote:
 
     # 13. Late Delivery Penalty Clause
     m_pen = re.search(
-        r"\b(?:3\.\s*)?Delay\.\s*([^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
+        r"(?:^|\n)\s*([0-9]+\.\s*Delay\.\s*[^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
         terms_block,
         re.IGNORECASE,
     )
+    if not m_pen:
+        m_pen = re.search(
+            r"\bDelay\.\s*([^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
+            terms_block,
+            re.IGNORECASE,
+        )
     if m_pen:
-        pen_quote = m_pen.group(0).strip()
+        pen_quote = m_pen.group(1).strip() if m_pen.lastindex else m_pen.group(0).strip()
         pen_rate = parse_percent(pen_quote)
         specifies_order_val = "order value" in pen_quote.lower()
 
@@ -355,12 +373,18 @@ def extract_fallback_from_text(document_text: str) -> ExtractedQuote:
 
     # 14. Validity
     m_val = re.search(
-        r"\b(?:4\.\s*)?Validity\.\s*([^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
+        r"(?:^|\n)\s*([0-9]+\.\s*Validity\.\s*[^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
         terms_block,
         re.IGNORECASE,
     )
-    val_quote = m_val.group(0).strip() if m_val else terms_block
-    val_text = m_val.group(1).strip() if m_val else None
+    if not m_val:
+        m_val = re.search(
+            r"\bValidity\.\s*([^\n]+(?:\n(?![0-9]\.)[^\n]+)*)",
+            terms_block,
+            re.IGNORECASE,
+        )
+    val_quote = m_val.group(1).strip() if m_val and m_val.lastindex else (m_val.group(0).strip() if m_val else terms_block)
+    val_text = re.sub(r"^(?:[0-9]+\.\s*)?Validity\.\s*", "", val_quote, flags=re.IGNORECASE).strip() if m_val else None
     val_days = parse_days(val_text)
 
     if val_days is not None:

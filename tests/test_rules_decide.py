@@ -223,6 +223,18 @@ def test_rule_rej_03_no_penalty_clause() -> None:
     assert res.rule_id == "RULE_REJ_03_NO_PENALTY"
     assert res.severity == Severity.REJECT
 
+    # Test that REJ_03 message lists all terms clause headings found in text
+    sample_terms_doc = (
+        "TERMS AND CONDITIONS\n"
+        "1. Payment. 10% advance payable with PO.\n"
+        "2. Delivery. Delivery within 27 days of PO.\n"
+        "3. Validity. Valid for 30 days.\n"
+        "4. Quality. Defective goods replaced.\n"
+        "5. Disputes. Settled by arbitration.\n"
+    )
+    res_headings = check_penalty_clause_present(q_absent, config, raw_document_text=sample_terms_doc)
+    assert "Payment, Delivery, Validity, Quality, Disputes" in res_headings.message
+
     # Clause UNCERTAIN -> REVIEW
     q_unc = make_clean_quote(late_penalty_clause_present=FieldEvidence[bool](status=FieldStatus.UNCERTAIN, value=None, evidence_quote="delay?"))
     assert check_penalty_clause_present(q_unc, config).severity == Severity.REVIEW

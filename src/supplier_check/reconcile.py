@@ -79,17 +79,30 @@ def reconcile_quotes(
     Returns:
         (reconciled_quote, audit_log_entries)
     """
+    reconciled, notes, _ = reconcile_quotes_with_count(llm_quote, fallback_quote)
+    return reconciled, notes
+
+
+def reconcile_quotes_with_count(
+    llm_quote: ExtractedQuote | None,
+    fallback_quote: ExtractedQuote | None,
+) -> tuple[ExtractedQuote, list[str], int]:
+    """Reconcile fields between LLM extraction and Fallback extraction, reporting disagreement count.
+
+    Returns:
+        (reconciled_quote, audit_log_entries, disagreement_count)
+    """
     audit_log: list[str] = []
 
     # Case 1: Only fallback extractor succeeded
     if llm_quote is None and fallback_quote is not None:
         audit_log.append("Extraction completed using Fallback extractor only (LLM unavailable/failed).")
-        return fallback_quote, audit_log
+        return fallback_quote, audit_log, 0
 
     # Case 2: Only LLM extractor succeeded
     if fallback_quote is None and llm_quote is not None:
         audit_log.append("Extraction completed using LLM extractor only.")
-        return llm_quote, audit_log
+        return llm_quote, audit_log, 0
 
     # Case 3: Neither succeeded
     if llm_quote is None and fallback_quote is None:
@@ -98,6 +111,7 @@ def reconcile_quotes(
     # Case 4: Both succeeded -> compare decision-relevant fields
     audit_log.append("Reconciling outputs from both LLM and Fallback extractors.")
     reconciled = llm_quote.model_copy(deep=True)
+    disagreements = 0
 
     for field_name in DECISION_FIELDS:
         fe_llm: FieldEvidence[Any] = getattr(llm_quote, field_name)
@@ -116,6 +130,7 @@ def reconcile_quotes(
             is_equal = values_match(llm_val, fb_val) and (fe_llm.status == fe_fb.status)
 
         if not is_equal:
+            disagreements += 1
             note = (
                 f"Disagreement on '{field_name}': "
                 f"LLM={fe_llm.status.value}({llm_val}) vs Fallback={fe_fb.status.value}({fb_val}). "
@@ -140,6 +155,7 @@ def reconcile_quotes(
 
     # Compare line_item_count
     if llm_quote.line_item_count != fallback_quote.line_item_count:
+        disagreements += 1
         note = (
             f"Disagreement on 'line_item_count': "
             f"LLM={llm_quote.line_item_count} vs Fallback={fallback_quote.line_item_count}. "
@@ -151,4 +167,4 @@ def reconcile_quotes(
     else:
         reconciled.line_item_count = fallback_quote.line_item_count
 
-    return reconciled, audit_log
+    return reconciled, audit_log, disagreements

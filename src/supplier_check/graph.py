@@ -43,7 +43,7 @@ from supplier_check.models import (
     Severity,
     Verdict,
 )
-from supplier_check.reconcile import reconcile_quotes
+from supplier_check.reconcile import reconcile_quotes_with_count
 from supplier_check.rules import run_all_policy_rules
 from supplier_check.verify import verify_and_ground_quote
 
@@ -141,6 +141,26 @@ def node_ingest(state: PipelineState) -> dict[str, Any]:
             _log_event(state, f"Failed to load PR items: {e}")
             pr_items = []
 
+    # If raw_text is explicitly provided in state (e.g. for synthetic tests), preserve it
+    if "raw_text" in state and state["raw_text"] is not None:
+        raw_val = state["raw_text"]
+        if not raw_val.strip():
+            msg = "PDF text is empty or unreadable"
+            _log_event(state, msg)
+            return {
+                "raw_text": "",
+                "pr_items": pr_items,
+                "grounding_errors": [msg],
+                "audit_log": state["audit_log"],
+            }
+        _log_event(state, f"Using provided raw_text ({len(raw_val)} chars)")
+        return {
+            "raw_text": raw_val,
+            "pr_items": pr_items,
+            "grounding_errors": state.get("grounding_errors", []),
+            "audit_log": state["audit_log"],
+        }
+
     if not pdf_path_str:
         _log_event(state, "No pdf_path provided in state.")
         return {
@@ -210,10 +230,9 @@ def node_extract(state: PipelineState) -> dict[str, Any]:
 
     mode = state.get("extractor_mode") or os.getenv("EXTRACTOR", "auto").lower()
     has_api_key = bool(os.getenv("GEMINI_API_KEY"))
-    run_live = os.getenv("RUN_LIVE_LLM", "0") == "1"
 
     llm_client = state.get("llm_client")
-    if llm_client is None and has_api_key and run_live:
+    if llm_client is None and has_api_key:
         try:
             llm_client = GeminiClient()
         except Exception as e:
@@ -223,55 +242,72 @@ def node_extract(state: PipelineState) -> dict[str, Any]:
     # Resolve mode 'auto'
     resolved_mode = mode
     if mode == "auto":
-        resolved_mode = "both" if (llm_client is not None or (has_api_key and run_live)) else "fallback"
-        _log_event(state, f"Resolved auto mode to: {resolved_mode} (has_llm={llm_client is not None})")
+        resolved_mode = "both" if (llm_client is not None or has_api_key) else "fallback"
+        _log_event(state, f"Resolved auto mode to: {resolved_mode} (has_llm={llm_client is not None}, has_key={has_api_key})")
 
     extracted_quote: ExtractedQuote | None = None
     extractor_used = resolved_mode
 
     try:
         if resolved_mode == "fallback":
+            if not has_api_key and (mode == "auto" or resolved_mode == "fallback"):
+                _log_event(state, "LLM not run: no API key")
+                extractor_used = "fallback only (no key)"
+            else:
+                extractor_used = "fallback only"
             extracted_quote = extract_fallback_from_text(raw_text)
-            _log_event(state, "Extracted using fallback extractor.")
+            _log_event(state, f"Extracted using fallback extractor ({extractor_used}).")
 
         elif resolved_mode == "llm":
             if llm_client is None:
-                _log_event(state, "LLM client requested but unavailable; falling back.")
+                if not has_api_key:
+                    _log_event(state, "LLM not run: no API key")
+                    extractor_used = "fallback only (no key)"
+                else:
+                    _log_event(state, "LLM client requested but unavailable; falling back.")
+                    extractor_used = "fallback only (LLM failed)"
                 extracted_quote = extract_fallback_from_text(raw_text)
-                extractor_used = "fallback"
             else:
                 try:
                     quote = _extract_with_retry(llm_client, raw_text, state)
                     extracted_quote = quote
+                    extractor_used = "gemini only"
                     _log_event(state, "Extracted using LLM.")
                 except Exception as e:
-                    _log_event(state, f"LLM extraction failed after retry: {e}; falling back to regex.")
+                    _log_event(state, f"LLM failed: {e}; fallback used")
                     extracted_quote = extract_fallback_from_text(raw_text)
-                    extractor_used = "fallback"
+                    extractor_used = "fallback only (LLM failed)"
 
         elif resolved_mode == "both":
             fb_quote = extract_fallback_from_text(raw_text)
             if llm_client is None:
-                _log_event(state, "Mode is both but LLM client unavailable; using fallback only.")
+                if not has_api_key:
+                    _log_event(state, "LLM not run: no API key")
+                    extractor_used = "fallback only (no key)"
+                else:
+                    _log_event(state, "LLM client unavailable; fallback used")
+                    extractor_used = "fallback only (LLM failed)"
                 extracted_quote = fb_quote
-                extractor_used = "fallback"
             else:
                 try:
                     llm_quote = _extract_with_retry(llm_client, raw_text, state)
-                    reconciled, notes = reconcile_quotes(llm_quote, fb_quote)
+                    reconciled, notes, disagreements = reconcile_quotes_with_count(llm_quote, fb_quote)
                     for n in notes:
                         _log_event(state, f"Reconcile note: {n}")
                     extracted_quote = reconciled
-                    extractor_used = "both"
-                    _log_event(state, "Successfully reconciled LLM and fallback extractions.")
+                    if disagreements == 0:
+                        extractor_used = "gemini+fallback (agreed)"
+                    else:
+                        extractor_used = f"gemini+fallback ({disagreements} fields disagreed)"
+                    _log_event(state, f"Successfully reconciled LLM and fallback extractions ({extractor_used}).")
                 except Exception as e:
-                    _log_event(state, f"LLM failed in both mode: {e}; using fallback only.")
+                    _log_event(state, f"LLM failed: {e}; fallback used")
                     extracted_quote = fb_quote
-                    extractor_used = "fallback"
+                    extractor_used = "fallback only (LLM failed)"
         else:
             _log_event(state, f"Unknown extractor mode '{mode}', defaulting to fallback.")
             extracted_quote = extract_fallback_from_text(raw_text)
-            extractor_used = "fallback"
+            extractor_used = "fallback only"
 
     except Exception as e:
         msg = f"Fatal extraction exception: {e}"
@@ -295,7 +331,7 @@ def _extract_with_retry(client: LLMClient, raw_text: str, state: PipelineState) 
         try:
             raw_dict = client.extract(raw_text)
             flat = FlatLLMQuote.model_validate(raw_dict)
-            return map_flat_to_extracted_quote(flat, raw_text)
+            return map_flat_to_extracted_quote(flat, raw_text, audit_log=state.get("audit_log"))
         except Exception as e:
             last_err = e
             _log_event(state, f"LLM attempt {attempt + 1} error: {e}")
@@ -409,7 +445,7 @@ def node_rules(state: PipelineState) -> dict[str, Any]:
         return {"rule_results": results, "audit_log": state.get("audit_log", [])}
 
     try:
-        policy_results = run_all_policy_rules(quote, config)
+        policy_results = run_all_policy_rules(quote, config, raw_document_text=state.get("raw_text"))
         results.extend(policy_results)
         _log_event(state, f"Rules completed: evaluated {len(policy_results)} policy rules.")
         return {
@@ -445,8 +481,13 @@ def node_decide(state: PipelineState) -> dict[str, Any]:
     try:
         decision = make_decision(rule_results, grounding_errors=grounding_errors)
         _log_event(state, f"Decision made: {decision.verdict.value} (display: {decision.display_verdict})")
+
+        # Pre-populate report so interrupted states also have a valid report structure
+        preliminary_report = _build_report_payload(state, decision=decision)
+
         return {
             "decision": decision,
+            "report": preliminary_report,
             "audit_log": state.get("audit_log", []),
         }
     except Exception as e:
@@ -464,8 +505,10 @@ def node_decide(state: PipelineState) -> dict[str, Any]:
             ],
             reasons=[msg],
         )
+        preliminary_report = _build_report_payload(state, decision=fallback_decision)
         return {
             "decision": fallback_decision,
+            "report": preliminary_report,
             "audit_log": state.get("audit_log", []),
         }
 
@@ -535,23 +578,26 @@ def node_human_review(state: PipelineState) -> dict[str, Any]:
 # Node 8: Report
 # ---------------------------------------------------------------------------
 
-def node_report(state: PipelineState) -> dict[str, Any]:
+def _build_report_payload(
+    state: PipelineState,
+    decision: Decision | None = None,
+    resolution: HumanResolution | None = None,
+) -> PipelineReport:
     """Build structured report preserving system verdict and recording reviewer resolution."""
-    decision = state.get("decision")
+    dec = decision or state.get("decision")
     quote = state.get("extracted_quote")
     pdf_path = state.get("pdf_path", "unknown")
-    resolution = state.get("human_resolution")
+    res = resolution or state.get("human_resolution")
 
-    system_verdict = decision.display_verdict if decision else "Needs a person to check"
+    system_verdict = dec.display_verdict if dec else "Needs a person to check"
     final_verdict = system_verdict
     reviewer_note: str | None = None
 
-    if resolution:
-        rev_dec = resolution.get("decision")
+    if res:
+        rev_dec = res.get("decision")
         if rev_dec:
-            # Map into display string if user wrote Approve/Reject
             final_verdict = rev_dec
-        reviewer_note = resolution.get("reviewer_note")
+        reviewer_note = res.get("reviewer_note")
 
     supplier_name = "Unknown"
     item_code = "Unknown"
@@ -561,9 +607,25 @@ def node_report(state: PipelineState) -> dict[str, Any]:
         if quote.item_code.value:
             item_code = str(quote.item_code.value)
 
+    if supplier_name == "Unknown":
+        # Check audit log if extraction had an error or fallback had supplier
+        fb_supp = None
+        raw_text = state.get("raw_text", "")
+        if raw_text:
+            try:
+                fb_q = extract_fallback_from_text(raw_text)
+                if fb_q and fb_q.supplier_name and fb_q.supplier_name.value:
+                    fb_supp = str(fb_q.supplier_name.value)
+            except Exception:
+                pass
+        if fb_supp:
+            supplier_name = fb_supp
+        elif state.get("grounding_errors") or any("error" in entry.lower() for entry in state.get("audit_log", [])):
+            supplier_name = "(extraction failed)"
+
     triggered_dicts: list[dict[str, str]] = []
-    if decision:
-        for r in decision.triggered_rules:
+    if dec:
+        for r in dec.triggered_rules:
             triggered_dicts.append({
                 "rule_id": r.rule_id,
                 "severity": r.severity.value,
@@ -571,19 +633,45 @@ def node_report(state: PipelineState) -> dict[str, Any]:
                 "evidence_quote": r.evidence_quote,
             })
 
-    report: PipelineReport = {
+    # If verdict is Needs a person to check and triggered_dicts is empty, find cause from audit_log
+    if system_verdict == "Needs a person to check" and not triggered_dicts:
+        cause = None
+        audit_log = state.get("audit_log") or []
+        for entry in reversed(audit_log):
+            if "LLM failed:" in entry or "error:" in entry.lower() or "exception" in entry.lower():
+                cause = entry.split("] ", 1)[-1] if "] " in entry else entry
+                break
+        if not cause:
+            cause = "Unverifiable extraction or grounding failure"
+        triggered_dicts.append({
+            "rule_id": "RULE_REV_11_UNVERIFIABLE_FIELD",
+            "severity": "REVIEW",
+            "message": cause,
+            "evidence_quote": "N/A",
+        })
+
+    extractor_used = state.get("extractor_used", "none")
+    # If any error in audit log or grounding errors, ensure extractor_used reflects that
+    if state.get("grounding_errors") and "error" not in extractor_used and "failed" not in extractor_used:
+        extractor_used = "error: see audit log"
+
+    return {
         "pdf": pdf_path,
         "supplier": supplier_name,
         "item": item_code,
         "system_verdict": system_verdict,
         "final_verdict": final_verdict,
         "reviewer_note": reviewer_note,
-        "extractor_used": state.get("extractor_used", "none"),
+        "extractor_used": extractor_used,
         "triggered_rules": triggered_dicts,
         "audit_log": state.get("audit_log", []),
     }
 
-    _log_event(state, f"Report generated: system_verdict={system_verdict}, final_verdict={final_verdict}")
+
+def node_report(state: PipelineState) -> dict[str, Any]:
+    """Build structured report preserving system verdict and recording reviewer resolution."""
+    report = _build_report_payload(state)
+    _log_event(state, f"Report generated: system_verdict={report['system_verdict']}, final_verdict={report['final_verdict']}")
     return {
         "report": report,
         "audit_log": state.get("audit_log", []),

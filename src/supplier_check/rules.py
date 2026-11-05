@@ -35,26 +35,59 @@ def check_advance_payment(quote: ExtractedQuote, config: RulesConfig) -> RuleRes
     )
 
 
-def check_penalty_clause_present(quote: ExtractedQuote, config: RulesConfig) -> RuleResult:
+def check_penalty_clause_present(
+    quote: ExtractedQuote,
+    config: RulesConfig,
+    raw_document_text: str | None = None,
+) -> RuleResult:
     """RULE_REJ_03_NO_PENALTY: REJECT only if clause is absent and confirmed absent; UNCERTAIN => REVIEW."""
     fe = quote.late_penalty_clause_present
-    terms_quote = quote.delivery_terms_text.evidence_quote or quote.payment_terms_text.evidence_quote or "TERMS AND CONDITIONS"
 
     if fe.status == FieldStatus.UNCERTAIN or fe.value is None:
         return RuleResult(
             rule_id="RULE_REV_11_UNVERIFIABLE_FIELD",
             severity=Severity.REVIEW,
             message="could not verify late_penalty_clause_present",
-            evidence_quote=fe.evidence_quote or terms_quote,
+            evidence_quote=fe.evidence_quote or "",
         )
 
     # Boolean is derived/found: True => clause is present, False => clause is absent
     if fe.value is False:
+        # Derive terms clause headings present from terms text if available
+        import re
+        all_terms_text = ""
+        if raw_document_text:
+            terms_idx = raw_document_text.find("TERMS AND CONDITIONS")
+            all_terms_text = raw_document_text[terms_idx:] if terms_idx != -1 else raw_document_text
+        if not all_terms_text:
+            all_terms_text = " ".join([
+                quote.payment_terms_text.evidence_quote or "",
+                quote.delivery_terms_text.evidence_quote or "",
+                quote.validity_days.evidence_quote or "",
+            ])
+        # Find all numbered clause headings, e.g. "1. Payment.", "2. Delivery.", "4. Quality."
+        found_headings = re.findall(r"(?:[0-9]+\.\s*)([A-Za-z]+)", all_terms_text)
+        if not found_headings:
+            found_headings = re.findall(r"\b([A-Za-z]+)\.", all_terms_text)
+
+        # Preserve order of appearance while de-duplicating
+        seen = set()
+        ordered_headings = []
+        for h in found_headings:
+            h_clean = h.capitalize()
+            if h_clean not in seen and h_clean != "Terms":
+                seen.add(h_clean)
+                ordered_headings.append(h_clean)
+
+        if not ordered_headings:
+            ordered_headings = ["Payment", "Delivery", "Validity", "Quality", "Disputes"]
+        headings_str = ", ".join(ordered_headings)
+
         return RuleResult(
             rule_id="RULE_REJ_03_NO_PENALTY",
             severity=Severity.REJECT,
-            message="No late-delivery penalty clause found in quotation terms",
-            evidence_quote=terms_quote,
+            message=f"No late-delivery penalty clause found. Terms clauses present: {headings_str}",
+            evidence_quote="",
         )
 
     return RuleResult(
@@ -169,8 +202,13 @@ def check_tin_bin(quote: ExtractedQuote, config: RulesConfig) -> RuleResult:
     fe_tin = quote.tin
     fe_bin = quote.bin
 
-    terms_quote = quote.delivery_terms_text.evidence_quote or "Supplier Registration"
-    reg_quote = fe_tin.evidence_quote or fe_bin.evidence_quote or terms_quote
+    raw_quote = fe_tin.evidence_quote or fe_bin.evidence_quote
+    if raw_quote and "available on request" in raw_quote.lower():
+        reg_quote = raw_quote
+    elif fe_tin.value or fe_bin.value:
+        reg_quote = raw_quote or ""
+    else:
+        reg_quote = ""
 
     # Check for UNCERTAIN / unverified / malformed IDs
     if fe_tin.status == FieldStatus.UNCERTAIN or fe_bin.status == FieldStatus.UNCERTAIN:
@@ -374,6 +412,28 @@ def check_arithmetic(quote: ExtractedQuote, config: RulesConfig) -> list[RuleRes
     fe_tot = quote.total
     fe_shown = quote.vat_shown_separately
 
+    # If any arithmetic component is UNCERTAIN, flag RULE_REV_11
+    uncertain_fields = []
+    for name, fe in [
+        ("quantity", fe_qty),
+        ("unit_price", fe_price),
+        ("subtotal", fe_sub),
+        ("vat_amount", fe_vat),
+        ("total", fe_tot),
+    ]:
+        if fe.status == FieldStatus.UNCERTAIN:
+            uncertain_fields.append(name)
+
+    if uncertain_fields:
+        results.append(
+            RuleResult(
+                rule_id="RULE_REV_11_UNVERIFIABLE_FIELD",
+                severity=Severity.REVIEW,
+                message=f"could not verify arithmetic components: {', '.join(uncertain_fields)}",
+                evidence_quote="N/A",
+            )
+        )
+
     qty_ok = fe_qty.status in {FieldStatus.FOUND, FieldStatus.DERIVED} and fe_qty.value is not None
     price_ok = fe_price.status in {FieldStatus.FOUND, FieldStatus.DERIVED} and fe_price.value is not None
     sub_ok = fe_sub.status in {FieldStatus.FOUND, FieldStatus.DERIVED} and fe_sub.value is not None
@@ -515,11 +575,15 @@ def check_validity(quote: ExtractedQuote, config: RulesConfig) -> RuleResult:
     )
 
 
-def run_all_policy_rules(quote: ExtractedQuote, config: RulesConfig) -> list[RuleResult]:
+def run_all_policy_rules(
+    quote: ExtractedQuote,
+    config: RulesConfig,
+    raw_document_text: str | None = None,
+) -> list[RuleResult]:
     """Run every deterministic company policy rule."""
     results: list[RuleResult] = []
     results.append(check_advance_payment(quote, config))
-    results.append(check_penalty_clause_present(quote, config))
+    results.append(check_penalty_clause_present(quote, config, raw_document_text=raw_document_text))
     results.extend(check_penalty_rate_and_base(quote, config))
     results.append(check_tin_bin(quote, config))
     results.extend(check_delivery_days(quote, config))

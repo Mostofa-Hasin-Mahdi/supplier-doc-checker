@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
+from dotenv import load_dotenv
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 from rich.console import Console
@@ -15,11 +16,32 @@ from rich.table import Table
 
 from supplier_check.graph import build_supplier_checker_graph
 
+# Load environment variables (.env) so GEMINI_API_KEY is available when running CLI commands
+load_dotenv()
+
 app = typer.Typer(
     help="Supplier document checker CLI powered by LangGraph deterministic pipeline.",
     add_completion=False,
 )
 console = Console()
+
+def _clean_quote_whitespace(quote_str: str | None) -> str:
+    """Collapse consecutive whitespace and newlines inside evidence quotes."""
+    if not quote_str:
+        return ""
+    return " ".join(quote_str.split())
+
+
+def _clean_triggered_rules(rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return clean copies of triggered rules with collapsed quote whitespace."""
+    cleaned = []
+    for r in rules:
+        r_copy = dict(r)
+        if "evidence_quote" in r_copy:
+            r_copy["evidence_quote"] = _clean_quote_whitespace(r_copy["evidence_quote"])
+        cleaned.append(r_copy)
+    return cleaned
+
 
 DEFAULT_DB_PATH = Path("outputs/checkpoints.sqlite")
 
@@ -176,6 +198,7 @@ def check_all(
             extracted_quote = state.values.get("extracted_quote")
             supplier = extracted_quote.supplier_name.value if extracted_quote and extracted_quote.supplier_name else "Unknown"
 
+            cleaned_trigs = _clean_triggered_rules(interrupt_val.get("triggered_rules", []))
             row_data: dict[str, Any] = {
                 "pdf": str(pdf),
                 "pack": pdf.stem,
@@ -186,7 +209,7 @@ def check_all(
                 "reviewer_note": None,
                 "extractor_used": state.values.get("extractor_used", mode),
                 "reasons": reasons,
-                "triggered_rules": interrupt_val.get("triggered_rules", []),
+                "triggered_rules": cleaned_trigs,
                 "audit_log": state.values.get("audit_log", []),
             }
             results.append(row_data)
@@ -208,7 +231,7 @@ def check_all(
             supp = rep.get("supplier", "Unknown")
 
             color = "green" if sys_v == "Approve" else ("red" if sys_v == "Reject" else "yellow")
-            trig_rules = rep.get("triggered_rules", [])
+            trig_rules = _clean_triggered_rules(rep.get("triggered_rules", []))
             reasons_list = [f"{t.get('rule_id')}: {t.get('message')}" for t in trig_rules]
             reasons_str = "; ".join(reasons_list) if reasons_list else "All checks passed"
 
@@ -268,17 +291,36 @@ def _write_markdown_results(results: list[dict[str, Any]], md_path: Path) -> Non
         pack = r.get("pack", "Unknown")
         supp = r.get("supplier", "Unknown")
         sys_v = r.get("system_verdict", "Unknown")
+        if sys_v == "NEEDS_REVIEW":
+            sys_v = "Needs a person to check"
+        elif sys_v == "APPROVE":
+            sys_v = "Approve"
+        elif sys_v == "REJECT":
+            sys_v = "Reject"
+
         fin_v = r.get("final_verdict", "Unknown")
+        if fin_v == "NEEDS_REVIEW":
+            fin_v = "Needs a person to check"
+        elif fin_v == "APPROVE":
+            fin_v = "Approve"
+        elif fin_v == "REJECT":
+            fin_v = "Reject"
+
         ext = r.get("extractor_used", "none")
 
         trigs = r.get("triggered_rules", [])
         if trigs:
-            reasons_summary = "<br>".join(
-                f"**{t.get('rule_id')}**: {t.get('message')} *(quote: \"{t.get('evidence_quote')}\")*"
-                for t in trigs
-            )
+            items = []
+            for t in trigs:
+                q = _clean_quote_whitespace(t.get("evidence_quote", ""))
+                q_part = f' *(quote: "{q}")*' if q else ""
+                items.append(f"**{t.get('rule_id')}**: {t.get('message')}{q_part}")
+            reasons_summary = "<br>".join(items)
         else:
-            reasons_summary = "All checks passed"
+            if sys_v == "Needs a person to check":
+                reasons_summary = "Unverifiable extraction or grounding failure"
+            else:
+                reasons_summary = "All checks passed"
 
         lines.append(f"| {pack} | {supp} | **{sys_v}** | **{fin_v}** | `{ext}` | {reasons_summary} |")
 

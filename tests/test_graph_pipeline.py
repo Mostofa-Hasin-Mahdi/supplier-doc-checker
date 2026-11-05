@@ -122,7 +122,8 @@ def test_failure_llm_client_raises_exception() -> None:
     state = app.get_state(cfg)
     # Pack 01 with fallback succeeds and approves
     assert state.values["decision"].verdict == Verdict.APPROVE
-    assert any("LLM failed in both mode" in log for log in state.values["audit_log"])
+    assert any("LLM failed:" in log and "fallback used" in log for log in state.values["audit_log"])
+    assert state.values["extractor_used"] == "fallback only (LLM failed)"
 
 
 def test_failure_llm_client_invalid_json() -> None:
@@ -142,7 +143,8 @@ def test_failure_llm_client_invalid_json() -> None:
     )
     state = app.get_state(cfg)
     assert state.values["decision"].verdict == Verdict.APPROVE
-    assert any("falling back to regex" in log for log in state.values["audit_log"])
+    assert any("LLM failed:" in log and "fallback used" in log for log in state.values["audit_log"])
+    assert state.values["extractor_used"] == "fallback only (LLM failed)"
 
 
 def test_failure_llm_disagrees_with_fallback_produces_uncertain_and_review() -> None:
@@ -204,3 +206,94 @@ def test_no_src_code_references_golden_or_pack_numbers() -> None:
         content = py_file.read_text(encoding="utf-8")
         for term in forbidden_terms:
             assert term not in content, f"Forbidden term '{term}' found in {py_file}"
+
+
+def test_auto_mode_invokes_configured_llm_client() -> None:
+    """Assert that default EXTRACTOR=auto invokes the configured LLM client."""
+    canned: dict[str, Any] = {
+        "supplier_name": "Padma Textile Mills Ltd",
+        "quotation_no": "QT-2026-0881",
+        "quote_date": "2026-10-25",
+        "reference_pr": "PR-2026-114",
+        "item_code": "A",
+        "description": "Cotton twill fabric, 280 gsm",
+        "quantity": "12,000",
+        "unit": "metre",
+        "unit_price": "472.00",
+        "subtotal": "5,664,000.00",
+        "vat_amount": "849,600.00",
+        "vat_percent": "15%",
+        "total": "6,513,600.00",
+        "tin": "101458013391",
+        "bin": "000170141-0101",
+        "advance_percent": "10%",
+        "payment_terms_text": "10% advance payable with the purchase order. Balance payable within 45 days",
+        "delivery_terms_text": "24 days",
+        "late_penalty_text": "Late delivery penalty: 1% of order value for each full week of delay",
+        "validity_text": "45 days",
+    }
+    fake_client = FakeLLMClient(canned)
+    checkpointer = MemorySaver()
+    app = build_supplier_checker_graph(checkpointer=checkpointer, llm_client=fake_client)
+    cfg = {"configurable": {"thread_id": "auto_mode_invokes_llm"}}
+
+    app.invoke(
+        {"pdf_path": "data/supplier-pack-01.pdf", "extractor_mode": "auto"},
+        config=cfg,
+    )
+
+    state = app.get_state(cfg)
+    assert len(fake_client.calls) >= 1
+    assert state.values["extractor_used"] == "gemini+fallback (agreed)"
+    assert state.values["report"]["extractor_used"] == "gemini+fallback (agreed)"
+    assert state.values["decision"].verdict == Verdict.APPROVE
+
+
+def test_auto_mode_does_not_crash_when_llm_raises() -> None:
+    """Assert that auto mode does not crash when LLM raises, logs failure, and continues with fallback."""
+    class CrashingLLMClient(FakeLLMClient):
+        def extract(self, document_text: str) -> dict:
+            raise RuntimeError("Network timeout or LLM failure")
+
+    crashing_client = CrashingLLMClient({})
+    checkpointer = MemorySaver()
+    app = build_supplier_checker_graph(checkpointer=checkpointer, llm_client=crashing_client)
+    cfg = {"configurable": {"thread_id": "auto_mode_crashing_llm"}}
+
+    app.invoke(
+        {"pdf_path": "data/supplier-pack-01.pdf", "extractor_mode": "auto"},
+        config=cfg,
+    )
+
+    state = app.get_state(cfg)
+    assert state.values["decision"].verdict == Verdict.APPROVE
+    assert state.values["extractor_used"] == "fallback only (LLM failed)"
+    assert state.values["report"]["extractor_used"] == "fallback only (LLM failed)"
+    assert any("LLM failed: Network timeout or LLM failure; fallback used" in log for log in state.values["audit_log"])
+
+
+def test_node_failure_produces_explicit_reason_and_error_extractor_label() -> None:
+    """When a node encounters an exception, report has a non-empty explicit reason and error Extractor label."""
+    checkpointer = MemorySaver()
+    app = build_supplier_checker_graph(checkpointer=checkpointer)
+    cfg = {"configurable": {"thread_id": "simulated_node_failure"}}
+
+    # Ingest a non-existent PDF file which triggers ingest exception/failure
+    app.invoke(
+        {"pdf_path": "data/completely_missing_corrupt_file.pdf", "extractor_mode": "fallback"},
+        config=cfg,
+    )
+
+    state = app.get_state(cfg)
+    assert state.values["decision"].verdict == Verdict.NEEDS_REVIEW
+
+    # Check report payload
+    rep = state.values.get("report")
+    assert rep is not None
+    assert rep["system_verdict"] == "Needs a person to check"
+    assert rep["extractor_used"] in {"error: see audit log", "fallback only (no key)", "failed"}
+    assert len(rep["triggered_rules"]) > 0
+    # Assert non-empty explicit reason
+    assert any("Extracted quote is missing" in r["message"] or "extraction failed" in r["message"] for r in rep["triggered_rules"])
+
+

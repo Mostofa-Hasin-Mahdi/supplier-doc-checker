@@ -24,10 +24,24 @@ def match_item_with_pr(
     - PR reference number does not match
     - Description or unit mismatch
     """
-    quote_pr = quote.reference_pr.value if quote.reference_pr.status in {FieldStatus.FOUND, FieldStatus.DERIVED} else None
-    quote_code = quote.item_code.value if quote.item_code.status in {FieldStatus.FOUND, FieldStatus.DERIVED} else None
-    quote_desc = quote.description.value if quote.description.status in {FieldStatus.FOUND, FieldStatus.DERIVED} else None
-    quote_unit = quote.unit.value if quote.unit.status in {FieldStatus.FOUND, FieldStatus.DERIVED} else None
+    quote_pr = (
+        quote.reference_pr.value
+        if quote.reference_pr.status in {FieldStatus.FOUND, FieldStatus.DERIVED}
+        else None
+    )
+    quote_code = (
+        quote.item_code.value
+        if quote.item_code.status in {FieldStatus.FOUND, FieldStatus.DERIVED}
+        else None
+    )
+    quote_desc = (
+        quote.description.value
+        if quote.description.status in {FieldStatus.FOUND, FieldStatus.DERIVED}
+        else None
+    )
+    quote_unit = (
+        quote.unit.value if quote.unit.status in {FieldStatus.FOUND, FieldStatus.DERIVED} else None
+    )
     ev_quote = quote.item_code.evidence_quote or quote.reference_pr.evidence_quote or "N/A"
 
     # Line item count check
@@ -51,12 +65,17 @@ def match_item_with_pr(
     # Search in PR items by PR number and item code (case-insensitive)
     matched_by_code: list[PurchaseRequestItem] = []
     for pr in pr_items:
-        if pr.pr_number.strip().casefold() == quote_pr.strip().casefold() and pr.item_code.strip().casefold() == quote_code.strip().casefold():
+        if (
+            pr.pr_number.strip().casefold() == quote_pr.strip().casefold()
+            and pr.item_code.strip().casefold() == quote_code.strip().casefold()
+        ):
             matched_by_code.append(pr)
 
     if not matched_by_code:
         # Check if PR number even matches any PR item
-        pr_matches = [pr for pr in pr_items if pr.pr_number.strip().casefold() == quote_pr.strip().casefold()]
+        pr_matches = [
+            pr for pr in pr_items if pr.pr_number.strip().casefold() == quote_pr.strip().casefold()
+        ]
         if not pr_matches:
             return None, RuleResult(
                 rule_id="RULE_REV_12_ITEM_MATCH",
@@ -88,7 +107,11 @@ def match_item_with_pr(
         q_desc_norm = " ".join(quote_desc.split()).casefold()
         # Mismatch if neither is substring of the other and first words don't match
         pr_first_word = pr_desc_norm.split()[0] if pr_desc_norm.split() else ""
-        if q_desc_norm not in pr_desc_norm and pr_desc_norm not in q_desc_norm and pr_first_word not in q_desc_norm:
+        if (
+            q_desc_norm not in pr_desc_norm
+            and pr_desc_norm not in q_desc_norm
+            and pr_first_word not in q_desc_norm
+        ):
             return None, RuleResult(
                 rule_id="RULE_REV_12_ITEM_MATCH",
                 severity=Severity.REVIEW,
@@ -216,4 +239,3 @@ def run_pr_comparisons(
     results.append(compare_price(quote, matched_pr, config))
     results.append(compare_quantity(quote, matched_pr, config))
     return matched_pr, results
-

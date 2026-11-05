@@ -99,11 +99,11 @@ def test_mutation_delivery_46_days(pack01_text: str) -> None:
 
 
 def test_mutation_delivery_40_days(pack01_text: str) -> None:
-    """Delivery in 40 days (31..45 days) => REVIEW RULE_REV_04_DELIVERY_RANGE."""
+    """Delivery in 40 days (31..45 days) => REVIEW RULE_REV_04_DELIVERY_WINDOW."""
     mutated = pack01_text.replace("Delivery within 24 days", "Delivery within 40 days")
     verdict, triggered = _run_graph_on_mutated_text(mutated, "mut_del_40")
     assert verdict == Verdict.NEEDS_REVIEW
-    assert "RULE_REV_04_DELIVERY_RANGE" in triggered
+    assert "RULE_REV_04_DELIVERY_WINDOW" in triggered
 
 
 def test_mutation_remove_penalty_clause(pack01_text: str) -> None:
@@ -139,11 +139,11 @@ def test_mutation_total_wrong(pack01_text: str) -> None:
 
 
 def test_mutation_validity_29_days(pack01_text: str) -> None:
-    """Validity 29 days (<30 days) => REVIEW RULE_REV_09_VALIDITY."""
+    """Validity 29 days (<30 days) => REVIEW RULE_REV_09_VALIDITY_WINDOW."""
     mutated = pack01_text.replace("valid for 45 days", "valid for 29 days")
     verdict, triggered = _run_graph_on_mutated_text(mutated, "mut_val_29")
     assert verdict == Verdict.NEEDS_REVIEW
-    assert "RULE_REV_09_VALIDITY" in triggered
+    assert "RULE_REV_09_VALIDITY_WINDOW" in triggered
 
 
 def test_mutation_quantity_plus_6_percent(pack01_text: str) -> None:
@@ -173,4 +173,3 @@ def test_mutation_penalty_rate_point_4_percent(pack01_text: str) -> None:
     verdict, triggered = _run_graph_on_mutated_text(mutated, "mut_pen_04")
     assert verdict == Verdict.REJECT
     assert "RULE_REJ_04_PENALTY_RATE" in triggered
-

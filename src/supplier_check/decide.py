@@ -60,13 +60,21 @@ def make_decision(
     for res in reject_rules:
         has_reject = True
         triggered_rules.append(res)
-        quote_suffix = f" (quote: '{res.evidence_quote}')" if res.evidence_quote and res.evidence_quote != "N/A" else ""
+        quote_suffix = (
+            f" (quote: '{res.evidence_quote}')"
+            if res.evidence_quote and res.evidence_quote != "N/A"
+            else ""
+        )
         add_reason(f"[{res.rule_id}] {res.message}{quote_suffix}")
 
     for res in review_rules:
         has_review = True
         triggered_rules.append(res)
-        quote_suffix = f" (quote: '{res.evidence_quote}')" if res.evidence_quote and res.evidence_quote != "N/A" else ""
+        quote_suffix = (
+            f" (quote: '{res.evidence_quote}')"
+            if res.evidence_quote and res.evidence_quote != "N/A"
+            else ""
+        )
         add_reason(f"[{res.rule_id}] {res.message}{quote_suffix}")
 
     # Precedence resolution:
@@ -87,4 +95,3 @@ def make_decision(
         triggered_rules=triggered_rules,
         reasons=reasons_list,
     )
-

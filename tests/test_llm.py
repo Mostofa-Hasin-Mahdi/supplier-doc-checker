@@ -163,7 +163,7 @@ def test_hallucination_guard_demotes_unfound_raw_value_to_uncertain() -> None:
     bad_canned = {
         "supplier_name": "Padma Textile Mills Ltd",
         "unit_price": "999.00",  # Not in SAMPLE_DOC
-        "quantity": "99,999",     # Not in SAMPLE_DOC
+        "quantity": "99,999",  # Not in SAMPLE_DOC
     }
     client = FakeLLMClient(bad_canned)
     quote, extractor = extract_quote_with_llm_or_fallback(SAMPLE_DOC, client)

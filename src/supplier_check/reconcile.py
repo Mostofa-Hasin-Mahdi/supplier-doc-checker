@@ -68,8 +68,6 @@ def values_match(val_a: Any, val_b: Any) -> bool:
     return val_a == val_b
 
 
-
-
 def reconcile_quotes(
     llm_quote: ExtractedQuote | None,
     fallback_quote: ExtractedQuote | None,
@@ -96,7 +94,9 @@ def reconcile_quotes_with_count(
 
     # Case 1: Only fallback extractor succeeded
     if llm_quote is None and fallback_quote is not None:
-        audit_log.append("Extraction completed using Fallback extractor only (LLM unavailable/failed).")
+        audit_log.append(
+            "Extraction completed using Fallback extractor only (LLM unavailable/failed)."
+        )
         return fallback_quote, audit_log, 0
 
     # Case 2: Only LLM extractor succeeded

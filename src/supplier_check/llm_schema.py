@@ -13,33 +13,19 @@ class FlatLLMQuote(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    supplier_name: str | None = Field(
-        default=None, description="Supplier name literal text"
-    )
-    quotation_no: str | None = Field(
-        default=None, description="Quotation number literal text"
-    )
+    supplier_name: str | None = Field(default=None, description="Supplier name literal text")
+    quotation_no: str | None = Field(default=None, description="Quotation number literal text")
     quote_date: str | None = Field(
         default=None, description="Quotation date literal text (e.g. 2026-10-21)"
     )
     reference_pr: str | None = Field(
         default=None, description="Reference PR number literal text (e.g. PR-2026-114)"
     )
-    item_code: str | None = Field(
-        default=None, description="Quotation item code (e.g. A, B, C)"
-    )
-    description: str | None = Field(
-        default=None, description="Quotation item description"
-    )
-    quantity: str | None = Field(
-        default=None, description="Quoted quantity text (e.g. 12,000)"
-    )
-    unit: str | None = Field(
-        default=None, description="Unit of measure text (e.g. metre, piece)"
-    )
-    unit_price: str | None = Field(
-        default=None, description="Unit price text (e.g. 472.00)"
-    )
+    item_code: str | None = Field(default=None, description="Quotation item code (e.g. A, B, C)")
+    description: str | None = Field(default=None, description="Quotation item description")
+    quantity: str | None = Field(default=None, description="Quoted quantity text (e.g. 12,000)")
+    unit: str | None = Field(default=None, description="Unit of measure text (e.g. metre, piece)")
+    unit_price: str | None = Field(default=None, description="Unit price text (e.g. 472.00)")
     subtotal: str | None = Field(
         default=None, description="Subtotal amount text if present, or null if no subtotal row"
     )
@@ -68,7 +54,8 @@ class FlatLLMQuote(BaseModel):
         default=None, description="Delivery schedule terms clause/text if present, or null"
     )
     late_penalty_text: str | None = Field(
-        default=None, description="Late delivery penalty clause text if present, or null if no clause"
+        default=None,
+        description="Late delivery penalty clause text if present, or null if no clause",
     )
     validity_text: str | None = Field(
         default=None, description="Quotation validity period text if present, or null"
@@ -91,4 +78,3 @@ CRITICAL EXTRACTION RULES:
 DOCUMENT TEXT:
 {document_text}
 """
-

@@ -55,16 +55,19 @@ def check_penalty_clause_present(
     if fe.value is False:
         # Derive terms clause headings present from terms text if available
         import re
+
         all_terms_text = ""
         if raw_document_text:
             terms_idx = raw_document_text.find("TERMS AND CONDITIONS")
             all_terms_text = raw_document_text[terms_idx:] if terms_idx != -1 else raw_document_text
         if not all_terms_text:
-            all_terms_text = " ".join([
-                quote.payment_terms_text.evidence_quote or "",
-                quote.delivery_terms_text.evidence_quote or "",
-                quote.validity_days.evidence_quote or "",
-            ])
+            all_terms_text = " ".join(
+                [
+                    quote.payment_terms_text.evidence_quote or "",
+                    quote.delivery_terms_text.evidence_quote or "",
+                    quote.validity_days.evidence_quote or "",
+                ]
+            )
         # Find all numbered clause headings, e.g. "1. Payment.", "2. Delivery.", "4. Quality."
         found_headings = re.findall(r"(?:[0-9]+\.\s*)([A-Za-z]+)", all_terms_text)
         if not found_headings:
@@ -94,7 +97,9 @@ def check_penalty_clause_present(
         rule_id="RULE_REJ_03_NO_PENALTY",
         severity=Severity.PASS,
         message="Late-delivery penalty clause is present",
-        evidence_quote=fe.evidence_quote or quote.late_penalty_percent_per_week.evidence_quote or "Delay clause present",
+        evidence_quote=fe.evidence_quote
+        or quote.late_penalty_percent_per_week.evidence_quote
+        or "Delay clause present",
     )
 
 
@@ -158,7 +163,11 @@ def check_penalty_rate_and_base(quote: ExtractedQuote, config: RulesConfig) -> l
                 )
             )
         elif fe_base.value is False:
-            ev_base = fe_base.evidence_quote or quote.late_penalty_percent_per_week.evidence_quote or "N/A"
+            ev_base = (
+                fe_base.evidence_quote
+                or quote.late_penalty_percent_per_week.evidence_quote
+                or "N/A"
+            )
             if config.penalty_base_unstated_policy == "review":
                 results.append(
                     RuleResult(
@@ -212,7 +221,11 @@ def check_tin_bin(quote: ExtractedQuote, config: RulesConfig) -> RuleResult:
 
     # Check for UNCERTAIN / unverified / malformed IDs
     if fe_tin.status == FieldStatus.UNCERTAIN or fe_bin.status == FieldStatus.UNCERTAIN:
-        missing_name = "TIN and BIN" if fe_tin.status == FieldStatus.UNCERTAIN and fe_bin.status == FieldStatus.UNCERTAIN else ("TIN" if fe_tin.status == FieldStatus.UNCERTAIN else "BIN")
+        missing_name = (
+            "TIN and BIN"
+            if fe_tin.status == FieldStatus.UNCERTAIN and fe_bin.status == FieldStatus.UNCERTAIN
+            else ("TIN" if fe_tin.status == FieldStatus.UNCERTAIN else "BIN")
+        )
         return RuleResult(
             rule_id="RULE_REV_11_UNVERIFIABLE_FIELD",
             severity=Severity.REVIEW,
@@ -227,7 +240,9 @@ def check_tin_bin(quote: ExtractedQuote, config: RulesConfig) -> RuleResult:
 
     if policy == "reject_if_either_missing":
         if tin_missing or bin_missing:
-            missing_items = "TIN and BIN" if tin_missing and bin_missing else ("TIN" if tin_missing else "BIN")
+            missing_items = (
+                "TIN and BIN" if tin_missing and bin_missing else ("TIN" if tin_missing else "BIN")
+            )
             return RuleResult(
                 rule_id="RULE_REJ_05_TAX_ID",
                 severity=Severity.REJECT,
@@ -252,7 +267,9 @@ def check_tin_bin(quote: ExtractedQuote, config: RulesConfig) -> RuleResult:
             )
     elif policy == "review_if_one_missing":
         if tin_missing or bin_missing:
-            missing_items = "TIN and BIN" if tin_missing and bin_missing else ("TIN" if tin_missing else "BIN")
+            missing_items = (
+                "TIN and BIN" if tin_missing and bin_missing else ("TIN" if tin_missing else "BIN")
+            )
             return RuleResult(
                 rule_id="RULE_REJ_05_TAX_ID",
                 severity=Severity.REVIEW,
@@ -269,7 +286,7 @@ def check_tin_bin(quote: ExtractedQuote, config: RulesConfig) -> RuleResult:
 
 
 def check_delivery_days(quote: ExtractedQuote, config: RulesConfig) -> list[RuleResult]:
-    """RULE_REJ_06_DELIVERY_MAX (>45 REJECT) and RULE_REV_04_DELIVERY_RANGE (31..45 REVIEW)."""
+    """RULE_REJ_06_DELIVERY_MAX (>45 REJECT) and RULE_REV_04_DELIVERY_WINDOW (31..45 REVIEW)."""
     fe = quote.delivery_days
     if fe.status in {FieldStatus.UNCERTAIN, FieldStatus.ABSENT} or fe.value is None:
         return [
@@ -277,7 +294,9 @@ def check_delivery_days(quote: ExtractedQuote, config: RulesConfig) -> list[Rule
                 rule_id="RULE_REV_11_UNVERIFIABLE_FIELD",
                 severity=Severity.REVIEW,
                 message="could not verify delivery_days",
-                evidence_quote=fe.evidence_quote or quote.delivery_terms_text.evidence_quote or "N/A",
+                evidence_quote=fe.evidence_quote
+                or quote.delivery_terms_text.evidence_quote
+                or "N/A",
             )
         ]
 
@@ -297,7 +316,7 @@ def check_delivery_days(quote: ExtractedQuote, config: RulesConfig) -> list[Rule
     if config.review_delivery_days_min <= days <= config.review_delivery_days_max:
         return [
             RuleResult(
-                rule_id="RULE_REV_04_DELIVERY_RANGE",
+                rule_id="RULE_REV_04_DELIVERY_WINDOW",
                 severity=Severity.REVIEW,
                 message=f"Delivery promised in {days} days falls in review range ({config.review_delivery_days_min} to {config.review_delivery_days_max} days)",
                 evidence_quote=ev,
@@ -349,7 +368,12 @@ def check_vat_presentation(quote: ExtractedQuote, config: RulesConfig) -> RuleRe
     fe_shown = quote.vat_shown_separately
     fe_pct = quote.vat_percent
 
-    ev = fe_pct.evidence_quote or quote.vat_amount.evidence_quote or quote.total.evidence_quote or "VAT Terms"
+    ev = (
+        fe_pct.evidence_quote
+        or quote.vat_amount.evidence_quote
+        or quote.total.evidence_quote
+        or "VAT Terms"
+    )
 
     if fe_shown.status == FieldStatus.UNCERTAIN or fe_shown.value is None:
         return RuleResult(
@@ -435,7 +459,9 @@ def check_arithmetic(quote: ExtractedQuote, config: RulesConfig) -> list[RuleRes
         )
 
     qty_ok = fe_qty.status in {FieldStatus.FOUND, FieldStatus.DERIVED} and fe_qty.value is not None
-    price_ok = fe_price.status in {FieldStatus.FOUND, FieldStatus.DERIVED} and fe_price.value is not None
+    price_ok = (
+        fe_price.status in {FieldStatus.FOUND, FieldStatus.DERIVED} and fe_price.value is not None
+    )
     sub_ok = fe_sub.status in {FieldStatus.FOUND, FieldStatus.DERIVED} and fe_sub.value is not None
     vat_ok = fe_vat.status in {FieldStatus.FOUND, FieldStatus.DERIVED} and fe_vat.value is not None
     tot_ok = fe_tot.status in {FieldStatus.FOUND, FieldStatus.DERIVED} and fe_tot.value is not None
@@ -546,11 +572,11 @@ def check_arithmetic(quote: ExtractedQuote, config: RulesConfig) -> list[RuleRes
 
 
 def check_validity(quote: ExtractedQuote, config: RulesConfig) -> RuleResult:
-    """RULE_REV_09_VALIDITY: Validity < 30 days REVIEW; exactly 30 passes; UNCERTAIN/None => REVIEW."""
+    """RULE_REV_09_VALIDITY_WINDOW: Validity < 30 days REVIEW; exactly 30 passes; UNCERTAIN/None => REVIEW."""
     fe = quote.validity_days
     if fe.status in {FieldStatus.UNCERTAIN, FieldStatus.ABSENT} or fe.value is None:
         return RuleResult(
-            rule_id="RULE_REV_09_VALIDITY",
+            rule_id="RULE_REV_09_VALIDITY_WINDOW",
             severity=Severity.REVIEW,
             message="Quotation validity period is missing or unclear",
             evidence_quote=fe.evidence_quote or "N/A",
@@ -561,14 +587,14 @@ def check_validity(quote: ExtractedQuote, config: RulesConfig) -> RuleResult:
 
     if days < config.min_validity_days:
         return RuleResult(
-            rule_id="RULE_REV_09_VALIDITY",
+            rule_id="RULE_REV_09_VALIDITY_WINDOW",
             severity=Severity.REVIEW,
             message=f"Quotation validity of {days} days is below minimum required {config.min_validity_days} days",
             evidence_quote=ev,
         )
 
     return RuleResult(
-        rule_id="RULE_REV_09_VALIDITY",
+        rule_id="RULE_REV_09_VALIDITY_WINDOW",
         severity=Severity.PASS,
         message=f"Quotation validity of {days} days meets minimum {config.min_validity_days} days rule",
         evidence_quote=ev,
@@ -592,4 +618,3 @@ def run_all_policy_rules(
     results.extend(check_arithmetic(quote, config))
     results.append(check_validity(quote, config))
     return results
-

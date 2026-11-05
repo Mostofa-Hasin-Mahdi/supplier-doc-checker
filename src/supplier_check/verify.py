@@ -128,7 +128,9 @@ def verify_and_ground_quote(raw_quote: ExtractedQuote, full_document_text: str) 
             field_val = FieldEvidence(
                 status=FieldStatus.DERIVED,
                 value=field_val.value,
-                evidence_quote=quote if (quote and is_grounded_in_text(quote, full_document_text)) else None,
+                evidence_quote=quote
+                if (quote and is_grounded_in_text(quote, full_document_text))
+                else None,
                 absence_note=field_val.absence_note,
                 grounded=grounded,
             )
@@ -189,7 +191,11 @@ def verify_and_ground_quote(raw_quote: ExtractedQuote, full_document_text: str) 
     penalty_fe = raw_quote.late_penalty_clause_present
     penalty_quote = raw_quote.late_penalty_percent_per_week.evidence_quote
 
-    if has_delay_keywords and penalty_fe.status == FieldStatus.DERIVED and penalty_fe.value is False:
+    if (
+        has_delay_keywords
+        and penalty_fe.status == FieldStatus.DERIVED
+        and penalty_fe.value is False
+    ):
         raw_quote.late_penalty_clause_present = FieldEvidence[bool](
             status=FieldStatus.UNCERTAIN,
             value=None,

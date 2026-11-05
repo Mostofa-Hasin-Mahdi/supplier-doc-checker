@@ -23,7 +23,9 @@ class RulesConfig(BaseModel):
     max_payment_days: int = Field(default=60)
     min_penalty_pct_per_week: Decimal = Field(default=Decimal("0.5"))
     penalty_base_unstated_policy: str = Field(default="review")  # "review" | "accept"
-    tin_bin_policy: str = Field(default="reject_if_either_missing")  # "reject_if_either_missing" | "reject_if_both_missing" | "review_if_one_missing"
+    tin_bin_policy: str = Field(
+        default="reject_if_either_missing"
+    )  # "reject_if_either_missing" | "reject_if_both_missing" | "review_if_one_missing"
     required_vat_percent: Decimal = Field(default=Decimal("15.0"))
     min_validity_days: int = Field(default=30)
     math_tolerance: Decimal = Field(default=Decimal("1.00"))
@@ -48,8 +50,14 @@ class RulesConfig(BaseModel):
             min_payment_days=int(raw_rules.get("min_payment_days", 30)),
             max_payment_days=int(raw_rules.get("max_payment_days", 60)),
             min_penalty_pct_per_week=Decimal(str(raw_rules.get("min_penalty_pct_per_week", "0.5"))),
-            penalty_base_unstated_policy=str(raw_rules.get("penalty_base_unstated_policy", "review")).strip().lower(),
-            tin_bin_policy=str(raw_rules.get("tin_bin_policy", "reject_if_either_missing")).strip().lower(),
+            penalty_base_unstated_policy=str(
+                raw_rules.get("penalty_base_unstated_policy", "review")
+            )
+            .strip()
+            .lower(),
+            tin_bin_policy=str(raw_rules.get("tin_bin_policy", "reject_if_either_missing"))
+            .strip()
+            .lower(),
             required_vat_percent=Decimal(str(raw_rules.get("required_vat_percent", "15.0"))),
             min_validity_days=int(raw_rules.get("min_validity_days", 30)),
             math_tolerance=Decimal(str(raw_rules.get("math_tolerance", "1.00"))),

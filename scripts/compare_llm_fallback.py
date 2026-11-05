@@ -84,12 +84,14 @@ def main() -> None:
             fb_fe: FieldEvidence = getattr(fb_quote, field)
             llm_fe: FieldEvidence = getattr(llm_quote, field) if llm_quote else None
             llm_st = llm_fe.status.value if llm_fe else ("not run" if not run_live else "FAILED")
-            status_records.append({
-                "pack": pack_name,
-                "field": field,
-                "llm_status": llm_st,
-                "fb_status": fb_fe.status.value,
-            })
+            status_records.append(
+                {
+                    "pack": pack_name,
+                    "field": field,
+                    "llm_status": llm_st,
+                    "fb_status": fb_fe.status.value,
+                }
+            )
 
         # Compare decision fields
         for field in DECISION_FIELDS:
@@ -99,11 +101,17 @@ def main() -> None:
             llm_val = llm_fe.value if llm_fe else None
             fb_val = fb_fe.value
 
-            agrees = llm_quote is not None and are_values_equal(llm_val, fb_val) and (llm_fe.status == fb_fe.status)
+            agrees = (
+                llm_quote is not None
+                and are_values_equal(llm_val, fb_val)
+                and (llm_fe.status == fb_fe.status)
+            )
             if agrees:
                 field_agreements[field] += 1
             else:
-                src_line = fb_fe.evidence_quote or (llm_fe.evidence_quote if llm_fe else None) or "N/A"
+                src_line = (
+                    fb_fe.evidence_quote or (llm_fe.evidence_quote if llm_fe else None) or "N/A"
+                )
                 disagreement_desc = (
                     f"- **{pack_name}** `{field}`: "
                     f"LLM=`{llm_fe.status.value if llm_fe else ('not run' if not run_live else 'FAILED')}`({llm_val}) vs "
@@ -149,7 +157,9 @@ def main() -> None:
             match_str = "not run"
         else:
             match_str = "YES" if r["llm_status"] == r["fb_status"] else "**NO**"
-        lines.append(f"| {r['pack']} | `{r['field']}` | `{r['llm_status']}` | `{r['fb_status']}` | {match_str} |")
+        lines.append(
+            f"| {r['pack']} | `{r['field']}` | `{r['llm_status']}` | `{r['fb_status']}` | {match_str} |"
+        )
 
     lines.append("\n## Disagreements Log\n")
     if all_disagreements:
@@ -167,4 +177,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

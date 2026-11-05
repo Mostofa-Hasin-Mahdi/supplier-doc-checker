@@ -25,6 +25,7 @@ app = typer.Typer(
 )
 console = Console()
 
+
 def _clean_quote_whitespace(quote_str: str | None) -> str:
     """Collapse consecutive whitespace and newlines inside evidence quotes."""
     if not quote_str:
@@ -90,7 +91,9 @@ def check(
     # Check if interrupted for human review
     if state.next and "human_review" in state.next:
         # State paused at human review
-        interrupt_val = state.tasks[0].interrupts[0].value if state.tasks and state.tasks[0].interrupts else {}
+        interrupt_val = (
+            state.tasks[0].interrupts[0].value if state.tasks and state.tasks[0].interrupts else {}
+        )
         reasons = interrupt_val.get("reasons", [])
 
         console.print(f"\n[bold yellow]Pack {pdf.name} requires human review.[/]")
@@ -133,7 +136,9 @@ def check(
         if triggered:
             console.print("[bold]Triggered Rules:[/]")
             for tr in triggered:
-                console.print(f"  - [{tr.get('severity')}] {tr.get('message')} (Quote: \"{tr.get('evidence_quote')}\")")
+                console.print(
+                    f'  - [{tr.get("severity")}] {tr.get("message")} (Quote: "{tr.get("evidence_quote")}")'
+                )
 
 
 @app.command()
@@ -141,9 +146,9 @@ def check_all(
     directory: Annotated[
         Path, typer.Argument(help="Directory containing supplier pack PDFs.")
     ] = Path("data"),
-    out: Annotated[
-        Path, typer.Option("--out", "-o", help="Output directory for reports.")
-    ] = Path("outputs"),
+    out: Annotated[Path, typer.Option("--out", "-o", help="Output directory for reports.")] = Path(
+        "outputs"
+    ),
     mode: Annotated[
         str, typer.Option("--mode", "-m", help="Extractor mode: auto|fallback|llm|both.")
     ] = "auto",
@@ -193,17 +198,29 @@ def check_all(
 
         if state.next and "human_review" in state.next:
             queued_cases.append(thread_id)
-            interrupt_val = state.tasks[0].interrupts[0].value if state.tasks and state.tasks[0].interrupts else {}
+            interrupt_val = (
+                state.tasks[0].interrupts[0].value
+                if state.tasks and state.tasks[0].interrupts
+                else {}
+            )
             reasons = interrupt_val.get("reasons", [])
             extracted_quote = state.values.get("extracted_quote")
-            supplier = extracted_quote.supplier_name.value if extracted_quote and extracted_quote.supplier_name else "Unknown"
+            supplier = (
+                extracted_quote.supplier_name.value
+                if extracted_quote and extracted_quote.supplier_name
+                else "Unknown"
+            )
 
             cleaned_trigs = _clean_triggered_rules(interrupt_val.get("triggered_rules", []))
             row_data: dict[str, Any] = {
                 "pdf": str(pdf),
                 "pack": pdf.stem,
                 "supplier": supplier or "Unknown",
-                "item": (extracted_quote.item_code.value if extracted_quote and extracted_quote.item_code else "Unknown"),
+                "item": (
+                    extracted_quote.item_code.value
+                    if extracted_quote and extracted_quote.item_code
+                    else "Unknown"
+                ),
                 "system_verdict": "Needs a person to check",
                 "final_verdict": "Pending Review",
                 "reviewer_note": None,
@@ -273,7 +290,9 @@ def check_all(
     console.print(f"Markdown report written to: [bold]{md_path}[/]")
 
     if queued_cases:
-        console.print(f"\n[bold yellow]Queued {len(queued_cases)} case(s) needing review:[/] {', '.join(queued_cases)}")
+        console.print(
+            f"\n[bold yellow]Queued {len(queued_cases)} case(s) needing review:[/] {', '.join(queued_cases)}"
+        )
         console.print("Resume with: `python -m supplier_check.cli review <thread_id>`")
 
 
@@ -322,7 +341,9 @@ def _write_markdown_results(results: list[dict[str, Any]], md_path: Path) -> Non
             else:
                 reasons_summary = "All checks passed"
 
-        lines.append(f"| {pack} | {supp} | **{sys_v}** | **{fin_v}** | `{ext}` | {reasons_summary} |")
+        lines.append(
+            f"| {pack} | {supp} | **{sys_v}** | **{fin_v}** | `{ext}` | {reasons_summary} |"
+        )
 
     lines.append("")
     md_path.write_text("\n".join(lines), encoding="utf-8")
@@ -337,9 +358,9 @@ def review(
     db: Annotated[
         Path, typer.Option("--db", help="Path to checkpoint database.")
     ] = DEFAULT_DB_PATH,
-    out: Annotated[
-        Path, typer.Option("--out", "-o", help="Output directory for reports.")
-    ] = Path("outputs"),
+    out: Annotated[Path, typer.Option("--out", "-o", help="Output directory for reports.")] = Path(
+        "outputs"
+    ),
 ) -> None:
     """List queued reviews or resume a specific case with a human decision."""
     checkpointer = _get_checkpointer(db)
@@ -380,12 +401,16 @@ def review(
     state = graph_app.get_state(config)
 
     if not state.next or "human_review" not in state.next:
-        console.print(f"[yellow]Case '{thread_id}' is not currently paused at human review (next={state.next}).[/]")
+        console.print(
+            f"[yellow]Case '{thread_id}' is not currently paused at human review (next={state.next}).[/]"
+        )
         if state.values.get("report"):
             console.print(f"Current report: {state.values.get('report')}")
         return
 
-    interrupt_val = state.tasks[0].interrupts[0].value if state.tasks and state.tasks[0].interrupts else {}
+    interrupt_val = (
+        state.tasks[0].interrupts[0].value if state.tasks and state.tasks[0].interrupts else {}
+    )
     console.print(f"\n[bold yellow]Reviewing case:[/] [bold cyan]{thread_id}[/]")
     console.print(f"System Verdict: [bold]{interrupt_val.get('system_verdict')}[/]")
     reasons = interrupt_val.get("reasons", [])
@@ -418,7 +443,9 @@ def review(
                     if row.get("pack") == thread_id:
                         row["final_verdict"] = report.get("final_verdict")
                         row["reviewer_note"] = report.get("reviewer_note")
-                results_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+                results_file.write_text(
+                    json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+                )
                 _write_markdown_results(data, out / "results.md")
                 console.print(f"[dim]Updated {results_file} and {out / 'results.md'}[/]")
             except Exception as e:

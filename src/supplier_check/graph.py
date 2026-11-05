@@ -127,6 +127,7 @@ def _load_default_pr_items(csv_path: str | Path | None = None) -> list[PurchaseR
 # Node 1: Ingest
 # ---------------------------------------------------------------------------
 
+
 def node_ingest(state: PipelineState) -> dict[str, Any]:
     """Read the PDF text and ensure PR items are loaded."""
     pdf_path_str = state.get("pdf_path", "")
@@ -215,6 +216,7 @@ def node_ingest(state: PipelineState) -> dict[str, Any]:
 # Node 2: Extract
 # ---------------------------------------------------------------------------
 
+
 def node_extract(state: PipelineState) -> dict[str, Any]:
     """Extract quote fields according to extractor mode."""
     raw_text = state.get("raw_text", "")
@@ -243,7 +245,10 @@ def node_extract(state: PipelineState) -> dict[str, Any]:
     resolved_mode = mode
     if mode == "auto":
         resolved_mode = "both" if (llm_client is not None or has_api_key) else "fallback"
-        _log_event(state, f"Resolved auto mode to: {resolved_mode} (has_llm={llm_client is not None}, has_key={has_api_key})")
+        _log_event(
+            state,
+            f"Resolved auto mode to: {resolved_mode} (has_llm={llm_client is not None}, has_key={has_api_key})",
+        )
 
     extracted_quote: ExtractedQuote | None = None
     extractor_used = resolved_mode
@@ -291,7 +296,9 @@ def node_extract(state: PipelineState) -> dict[str, Any]:
             else:
                 try:
                     llm_quote = _extract_with_retry(llm_client, raw_text, state)
-                    reconciled, notes, disagreements = reconcile_quotes_with_count(llm_quote, fb_quote)
+                    reconciled, notes, disagreements = reconcile_quotes_with_count(
+                        llm_quote, fb_quote
+                    )
                     for n in notes:
                         _log_event(state, f"Reconcile note: {n}")
                     extracted_quote = reconciled
@@ -299,7 +306,10 @@ def node_extract(state: PipelineState) -> dict[str, Any]:
                         extractor_used = "gemini+fallback (agreed)"
                     else:
                         extractor_used = f"gemini+fallback ({disagreements} fields disagreed)"
-                    _log_event(state, f"Successfully reconciled LLM and fallback extractions ({extractor_used}).")
+                    _log_event(
+                        state,
+                        f"Successfully reconciled LLM and fallback extractions ({extractor_used}).",
+                    )
                 except Exception as e:
                     _log_event(state, f"LLM failed: {e}; fallback used")
                     extracted_quote = fb_quote
@@ -344,6 +354,7 @@ def _extract_with_retry(client: LLMClient, raw_text: str, state: PipelineState) 
 # Node 3: Verify
 # ---------------------------------------------------------------------------
 
+
 def node_verify(state: PipelineState) -> dict[str, Any]:
     """Verify evidence quotes against document text."""
     quote = state.get("extracted_quote")
@@ -358,8 +369,13 @@ def node_verify(state: PipelineState) -> dict[str, Any]:
         verified_quote = verify_and_ground_quote(quote, raw_text)
         # Check if any grounding failure occurred on decision fields
         for field_name in [
-            "unit_price", "quantity", "total", "advance_percent",
-            "payment_days", "delivery_days", "validity_days",
+            "unit_price",
+            "quantity",
+            "total",
+            "advance_percent",
+            "payment_days",
+            "delivery_days",
+            "validity_days",
         ]:
             fe = getattr(verified_quote, field_name)
             if not fe.grounded:
@@ -386,6 +402,7 @@ def node_verify(state: PipelineState) -> dict[str, Any]:
 # Node 4: Compare
 # ---------------------------------------------------------------------------
 
+
 def node_compare(state: PipelineState) -> dict[str, Any]:
     """Match quote with PR items and run price/quantity comparisons."""
     quote = state.get("extracted_quote")
@@ -400,7 +417,10 @@ def node_compare(state: PipelineState) -> dict[str, Any]:
     try:
         matched_pr, comp_results = run_pr_comparisons(quote, pr_items, config)
         results.extend(comp_results)
-        _log_event(state, f"Compare completed: matched_pr={matched_pr.item_code if matched_pr else None}, results={len(comp_results)}")
+        _log_event(
+            state,
+            f"Compare completed: matched_pr={matched_pr.item_code if matched_pr else None}, results={len(comp_results)}",
+        )
         return {
             "rule_results": results,
             "audit_log": state.get("audit_log", []),
@@ -426,6 +446,7 @@ def node_compare(state: PipelineState) -> dict[str, Any]:
 # Node 5: Rules
 # ---------------------------------------------------------------------------
 
+
 def node_rules(state: PipelineState) -> dict[str, Any]:
     """Execute all deterministic procurement policy rules."""
     quote = state.get("extracted_quote")
@@ -445,7 +466,9 @@ def node_rules(state: PipelineState) -> dict[str, Any]:
         return {"rule_results": results, "audit_log": state.get("audit_log", [])}
 
     try:
-        policy_results = run_all_policy_rules(quote, config, raw_document_text=state.get("raw_text"))
+        policy_results = run_all_policy_rules(
+            quote, config, raw_document_text=state.get("raw_text")
+        )
         results.extend(policy_results)
         _log_event(state, f"Rules completed: evaluated {len(policy_results)} policy rules.")
         return {
@@ -473,6 +496,7 @@ def node_rules(state: PipelineState) -> dict[str, Any]:
 # Node 6: Decide
 # ---------------------------------------------------------------------------
 
+
 def node_decide(state: PipelineState) -> dict[str, Any]:
     """Aggregate rule results and grounding errors into a system verdict."""
     rule_results = state.get("rule_results") or []
@@ -480,7 +504,9 @@ def node_decide(state: PipelineState) -> dict[str, Any]:
 
     try:
         decision = make_decision(rule_results, grounding_errors=grounding_errors)
-        _log_event(state, f"Decision made: {decision.verdict.value} (display: {decision.display_verdict})")
+        _log_event(
+            state, f"Decision made: {decision.verdict.value} (display: {decision.display_verdict})"
+        )
 
         # Pre-populate report so interrupted states also have a valid report structure
         preliminary_report = _build_report_payload(state, decision=decision)
@@ -517,6 +543,7 @@ def node_decide(state: PipelineState) -> dict[str, Any]:
 # Conditional Edge: decide -> human_review or report
 # ---------------------------------------------------------------------------
 
+
 def route_after_decide(state: PipelineState) -> Literal["human_review", "report"]:
     """Route to human_review if verdict is NEEDS_REVIEW, otherwise directly to report."""
     decision = state.get("decision")
@@ -528,6 +555,7 @@ def route_after_decide(state: PipelineState) -> Literal["human_review", "report"
 # ---------------------------------------------------------------------------
 # Node 7: Human Review (interruptible)
 # ---------------------------------------------------------------------------
+
 
 def node_human_review(state: PipelineState) -> dict[str, Any]:
     """Pause execution via interrupt() to allow human reviewer input."""
@@ -578,6 +606,7 @@ def node_human_review(state: PipelineState) -> dict[str, Any]:
 # Node 8: Report
 # ---------------------------------------------------------------------------
 
+
 def _build_report_payload(
     state: PipelineState,
     decision: Decision | None = None,
@@ -620,18 +649,22 @@ def _build_report_payload(
                 pass
         if fb_supp:
             supplier_name = fb_supp
-        elif state.get("grounding_errors") or any("error" in entry.lower() for entry in state.get("audit_log", [])):
+        elif state.get("grounding_errors") or any(
+            "error" in entry.lower() for entry in state.get("audit_log", [])
+        ):
             supplier_name = "(extraction failed)"
 
     triggered_dicts: list[dict[str, str]] = []
     if dec:
         for r in dec.triggered_rules:
-            triggered_dicts.append({
-                "rule_id": r.rule_id,
-                "severity": r.severity.value,
-                "message": r.message,
-                "evidence_quote": r.evidence_quote,
-            })
+            triggered_dicts.append(
+                {
+                    "rule_id": r.rule_id,
+                    "severity": r.severity.value,
+                    "message": r.message,
+                    "evidence_quote": r.evidence_quote,
+                }
+            )
 
     # If verdict is Needs a person to check and triggered_dicts is empty, find cause from audit_log
     if system_verdict == "Needs a person to check" and not triggered_dicts:
@@ -643,16 +676,22 @@ def _build_report_payload(
                 break
         if not cause:
             cause = "Unverifiable extraction or grounding failure"
-        triggered_dicts.append({
-            "rule_id": "RULE_REV_11_UNVERIFIABLE_FIELD",
-            "severity": "REVIEW",
-            "message": cause,
-            "evidence_quote": "N/A",
-        })
+        triggered_dicts.append(
+            {
+                "rule_id": "RULE_REV_11_UNVERIFIABLE_FIELD",
+                "severity": "REVIEW",
+                "message": cause,
+                "evidence_quote": "N/A",
+            }
+        )
 
     extractor_used = state.get("extractor_used", "none")
     # If any error in audit log or grounding errors, ensure extractor_used reflects that
-    if state.get("grounding_errors") and "error" not in extractor_used and "failed" not in extractor_used:
+    if (
+        state.get("grounding_errors")
+        and "error" not in extractor_used
+        and "failed" not in extractor_used
+    ):
         extractor_used = "error: see audit log"
 
     return {
@@ -671,7 +710,10 @@ def _build_report_payload(
 def node_report(state: PipelineState) -> dict[str, Any]:
     """Build structured report preserving system verdict and recording reviewer resolution."""
     report = _build_report_payload(state)
-    _log_event(state, f"Report generated: system_verdict={report['system_verdict']}, final_verdict={report['final_verdict']}")
+    _log_event(
+        state,
+        f"Report generated: system_verdict={report['system_verdict']}, final_verdict={report['final_verdict']}",
+    )
     return {
         "report": report,
         "audit_log": state.get("audit_log", []),
@@ -681,6 +723,7 @@ def node_report(state: PipelineState) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Graph Builder
 # ---------------------------------------------------------------------------
+
 
 def build_supplier_checker_graph(
     checkpointer: Any = None,

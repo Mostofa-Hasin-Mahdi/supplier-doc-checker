@@ -133,5 +133,3 @@ def test_reconciliation_derived_fields_and_line_item_count() -> None:
     reconciled_lic, audit_lic = reconcile_quotes(llm_quote, fb_quote)
     assert reconciled_lic.line_item_count is None
     assert any("Disagreement on 'line_item_count'" in log for log in audit_lic)
-
-

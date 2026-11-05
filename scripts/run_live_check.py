@@ -31,7 +31,9 @@ def run_live_check(pack_stems: list[str] | None = None) -> None:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         msg = "GEMINI_API_KEY not found in environment or .env file."
-        Path("outputs/live_run_status.md").write_text(f"# Live Run Status\n\n**Skipped**: {msg}\n", encoding="utf-8")
+        Path("outputs/live_run_status.md").write_text(
+            f"# Live Run Status\n\n**Skipped**: {msg}\n", encoding="utf-8"
+        )
         print(msg)
         return
 
@@ -60,7 +62,9 @@ def run_live_check(pack_stems: list[str] | None = None) -> None:
         gemini_client = GeminiClient()
     except Exception as e:
         err_msg = f"Failed to initialize GeminiClient: {e}"
-        Path("outputs/live_run_status.md").write_text(f"# Live Run Status\n\n**Error**: {err_msg}\n", encoding="utf-8")
+        Path("outputs/live_run_status.md").write_text(
+            f"# Live Run Status\n\n**Error**: {err_msg}\n", encoding="utf-8"
+        )
         print(err_msg)
         return
 
@@ -109,15 +113,19 @@ def run_live_check(pack_stems: list[str] | None = None) -> None:
 
             fb_q = extract_fallback_from_text(raw_text)
 
-            comparison_rows.append({
-                "pack": pdf.stem,
-                "llm_quote": llm_q,
-                "fb_quote": fb_q,
-            })
+            comparison_rows.append(
+                {
+                    "pack": pdf.stem,
+                    "llm_quote": llm_q,
+                    "fb_quote": fb_q,
+                }
+            )
 
             rep = state.values.get("report") or {}
             dec = state.values.get("decision")
-            system_verdict = rep.get("system_verdict") or (dec.display_verdict if dec else "Needs a person to check")
+            system_verdict = rep.get("system_verdict") or (
+                dec.display_verdict if dec else "Needs a person to check"
+            )
             final_verdict = rep.get("final_verdict") or system_verdict
             supplier = rep.get("supplier") or "Unknown"
 
@@ -135,19 +143,23 @@ def run_live_check(pack_stems: list[str] | None = None) -> None:
             trig_rules = trig_rules or []
             reasons_list = [f"{t.get('rule_id')}: {t.get('message')}" for t in trig_rules]
 
-            results.append({
-                "pdf": str(pdf),
-                "pack": pdf.stem,
-                "supplier": supplier,
-                "item": rep.get("item", "Unknown"),
-                "system_verdict": system_verdict,
-                "final_verdict": final_verdict,
-                "reviewer_note": rep.get("reviewer_note"),
-                "extractor_used": rep.get("extractor_used", state.values.get("extractor_used", "auto")),
-                "reasons": reasons_list,
-                "triggered_rules": trig_rules,
-                "audit_log": rep.get("audit_log", state.values.get("audit_log", [])),
-            })
+            results.append(
+                {
+                    "pdf": str(pdf),
+                    "pack": pdf.stem,
+                    "supplier": supplier,
+                    "item": rep.get("item", "Unknown"),
+                    "system_verdict": system_verdict,
+                    "final_verdict": final_verdict,
+                    "reviewer_note": rep.get("reviewer_note"),
+                    "extractor_used": rep.get(
+                        "extractor_used", state.values.get("extractor_used", "auto")
+                    ),
+                    "reasons": reasons_list,
+                    "triggered_rules": trig_rules,
+                    "audit_log": rep.get("audit_log", state.values.get("audit_log", [])),
+                }
+            )
 
             # Small delay to respect free-tier rate limits
             time.sleep(1.0)
@@ -158,7 +170,9 @@ def run_live_check(pack_stems: list[str] | None = None) -> None:
         print(f"Results saved to: {live_res_md}")
 
         # Write outputs/extraction_llm_vs_fallback_live.md
-        _write_comparison_report(comparison_rows, Path("outputs/extraction_llm_vs_fallback_live.md"))
+        _write_comparison_report(
+            comparison_rows, Path("outputs/extraction_llm_vs_fallback_live.md")
+        )
 
         status_content = (
             f"# Live Run Status\n\n"
@@ -172,7 +186,9 @@ def run_live_check(pack_stems: list[str] | None = None) -> None:
     except Exception as e:
         err_msg = f"Live run encountered error: {e}"
         logger.error(err_msg, exc_info=True)
-        Path("outputs/live_run_status.md").write_text(f"# Live Run Status\n\n**FAILED**: {err_msg}\n", encoding="utf-8")
+        Path("outputs/live_run_status.md").write_text(
+            f"# Live Run Status\n\n**FAILED**: {err_msg}\n", encoding="utf-8"
+        )
         print(err_msg)
 
 
@@ -202,8 +218,18 @@ def _write_comparison_report(rows: list[dict[str, Any]], out_path: Path) -> None
             fb_st = fe_fb.status.value
             fb_val = str(fe_fb.value) if fe_fb.value is not None else "None"
 
-            agree = "Yes" if (llm_q and values_match(fe_llm.value, fe_fb.value) and fe_llm.status == fe_fb.status) else "No"
-            lines.append(f"| {pack} | `{fld}` | {llm_st} | `{llm_val}` | {fb_st} | `{fb_val}` | **{agree}** |")
+            agree = (
+                "Yes"
+                if (
+                    llm_q
+                    and values_match(fe_llm.value, fe_fb.value)
+                    and fe_llm.status == fe_fb.status
+                )
+                else "No"
+            )
+            lines.append(
+                f"| {pack} | `{fld}` | {llm_st} | `{llm_val}` | {fb_st} | `{fb_val}` | **{agree}** |"
+            )
 
     out_path.write_text("\n".join(lines), encoding="utf-8")
     print(f"Comparison report saved to: {out_path}")
@@ -211,5 +237,6 @@ def _write_comparison_report(rows: list[dict[str, Any]], out_path: Path) -> None
 
 if __name__ == "__main__":
     import sys
+
     target_packs = sys.argv[1:] if len(sys.argv) > 1 else None
     run_live_check(target_packs)

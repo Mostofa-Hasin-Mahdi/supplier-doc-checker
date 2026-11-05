@@ -94,13 +94,14 @@ class FieldEvidence(BaseModel, Generic[T]):
             if not isinstance(self.value, bool):
                 raise ValueError("status DERIVED is reserved for code-derived boolean fields")
             if not self.evidence_quote and not self.absence_note:
-                raise ValueError("status DERIVED requires either an evidence_quote or an absence_note")
+                raise ValueError(
+                    "status DERIVED requires either an evidence_quote or an absence_note"
+                )
         elif self.status == FieldStatus.ABSENT:
             if self.value is not None:
                 raise ValueError("status ABSENT requires value to be None")
         # UNCERTAIN may carry anything
         return self
-
 
 
 class PurchaseRequestItem(BaseModel):

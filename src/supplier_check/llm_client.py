@@ -204,9 +204,13 @@ def map_flat_to_extracted_quote(
                 grounded=True,
             )
         else:
-            fe_subtotal = FieldEvidence[Decimal](status=FieldStatus.UNCERTAIN, evidence_quote=sub_quote)
+            fe_subtotal = FieldEvidence[Decimal](
+                status=FieldStatus.UNCERTAIN, evidence_quote=sub_quote
+            )
     elif flat.subtotal and not sub_found:
-        fe_subtotal = FieldEvidence[Decimal](status=FieldStatus.UNCERTAIN, absence_note="Subtotal not grounded")
+        fe_subtotal = FieldEvidence[Decimal](
+            status=FieldStatus.UNCERTAIN, absence_note="Subtotal not grounded"
+        )
     else:
         fe_subtotal = FieldEvidence[Decimal](
             status=FieldStatus.ABSENT,
@@ -222,13 +226,7 @@ def map_flat_to_extracted_quote(
     vat_amt_quote, vat_amt_found = get_ev_quote(flat.vat_amount, "vat_amount")
     vat_pct_quote, vat_pct_found = get_ev_quote(flat.vat_percent, "vat_percent")
 
-    if (
-        vat_amt_found
-        and vat_pct_found
-        and vat_amt_quote
-        and vat_pct_quote
-        and not has_tax_included
-    ):
+    if vat_amt_found and vat_pct_found and vat_amt_quote and vat_pct_quote and not has_tax_included:
         parsed_vat_pct = parse_percent(vat_pct_quote) or parse_percent(flat.vat_percent)
         parsed_vat_amt = parse_money(vat_amt_quote) or parse_money(flat.vat_amount)
         if parsed_vat_pct is not None and parsed_vat_amt is not None:
@@ -285,7 +283,9 @@ def map_flat_to_extracted_quote(
     )
 
     if flat.tin and not tin_found:
-        fe_tin = FieldEvidence[str](status=FieldStatus.UNCERTAIN, absence_note="TIN not grounded in text")
+        fe_tin = FieldEvidence[str](
+            status=FieldStatus.UNCERTAIN, absence_note="TIN not grounded in text"
+        )
     elif tin_val and tin_found:
         fe_tin = FieldEvidence[str](
             status=FieldStatus.FOUND,
@@ -304,7 +304,9 @@ def map_flat_to_extracted_quote(
         )
 
     if flat.bin and not bin_found:
-        fe_bin = FieldEvidence[str](status=FieldStatus.UNCERTAIN, absence_note="BIN not grounded in text")
+        fe_bin = FieldEvidence[str](
+            status=FieldStatus.UNCERTAIN, absence_note="BIN not grounded in text"
+        )
     elif bin_val and bin_found:
         fe_bin = FieldEvidence[str](
             status=FieldStatus.FOUND,
@@ -353,7 +355,9 @@ def map_flat_to_extracted_quote(
             grounded=True,
         )
         if (flat.payment_terms_text and pay_found and pay_quote)
-        else FieldEvidence[str](status=FieldStatus.UNCERTAIN, absence_note="Payment terms not found")
+        else FieldEvidence[str](
+            status=FieldStatus.UNCERTAIN, absence_note="Payment terms not found"
+        )
     )
 
     pay_days_target = pay_quote or flat.payment_terms_text
@@ -383,7 +387,9 @@ def map_flat_to_extracted_quote(
             grounded=True,
         )
         if (flat.delivery_terms_text and del_found and del_quote)
-        else FieldEvidence[str](status=FieldStatus.UNCERTAIN, absence_note="Delivery terms not found")
+        else FieldEvidence[str](
+            status=FieldStatus.UNCERTAIN, absence_note="Delivery terms not found"
+        )
     )
 
     del_days_target = del_quote or flat.delivery_terms_text
@@ -541,7 +547,9 @@ class GeminiClient(LLMClient):
         self.model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
         self.timeout_seconds = timeout_seconds
         if not self.api_key:
-            logger.warning("GEMINI_API_KEY not configured. Calls to GeminiClient.extract will raise.")
+            logger.warning(
+                "GEMINI_API_KEY not configured. Calls to GeminiClient.extract will raise."
+            )
 
     def extract(self, document_text: str) -> dict:
         """Call Gemini API requesting JSON output strictly conforming to FlatLLMQuote schema."""

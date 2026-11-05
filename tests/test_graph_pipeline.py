@@ -58,7 +58,12 @@ def test_human_pause_and_resume_pack_09() -> None:
 
     # Resume with Approve and reviewer note
     resumed = app.invoke(
-        Command(resume={"decision": "Approve", "reviewer_note": "Special waiver granted for payment terms"}),
+        Command(
+            resume={
+                "decision": "Approve",
+                "reviewer_note": "Special waiver granted for payment terms",
+            }
+        ),
         config=cfg,
     )
     report = resumed.get("report")
@@ -104,6 +109,7 @@ def test_failure_empty_pdf_text(tmp_path: Path) -> None:
 
 def test_failure_llm_client_raises_exception() -> None:
     """An LLM client that raises an exception logs error, falls back to fallback, and continues."""
+
     class RaisingLLMClient(FakeLLMClient):
         def extract(self, document_text: str) -> dict:
             raise RuntimeError("API quota exhausted or network error")
@@ -251,6 +257,7 @@ def test_auto_mode_invokes_configured_llm_client() -> None:
 
 def test_auto_mode_does_not_crash_when_llm_raises() -> None:
     """Assert that auto mode does not crash when LLM raises, logs failure, and continues with fallback."""
+
     class CrashingLLMClient(FakeLLMClient):
         def extract(self, document_text: str) -> dict:
             raise RuntimeError("Network timeout or LLM failure")
@@ -269,7 +276,10 @@ def test_auto_mode_does_not_crash_when_llm_raises() -> None:
     assert state.values["decision"].verdict == Verdict.APPROVE
     assert state.values["extractor_used"] == "fallback only (LLM failed)"
     assert state.values["report"]["extractor_used"] == "fallback only (LLM failed)"
-    assert any("LLM failed: Network timeout or LLM failure; fallback used" in log for log in state.values["audit_log"])
+    assert any(
+        "LLM failed: Network timeout or LLM failure; fallback used" in log
+        for log in state.values["audit_log"]
+    )
 
 
 def test_node_failure_produces_explicit_reason_and_error_extractor_label() -> None:
@@ -294,6 +304,7 @@ def test_node_failure_produces_explicit_reason_and_error_extractor_label() -> No
     assert rep["extractor_used"] in {"error: see audit log", "fallback only (no key)", "failed"}
     assert len(rep["triggered_rules"]) > 0
     # Assert non-empty explicit reason
-    assert any("Extracted quote is missing" in r["message"] or "extraction failed" in r["message"] for r in rep["triggered_rules"])
-
-
+    assert any(
+        "Extracted quote is missing" in r["message"] or "extraction failed" in r["message"]
+        for r in rep["triggered_rules"]
+    )

@@ -58,7 +58,7 @@ def run_evaluation() -> dict[str, Any]:
         dec = state.values.get("decision")
         actual_verdict = dec.verdict.value if dec else "UNKNOWN"
 
-        match = (actual_verdict == exp_verdict)
+        match = actual_verdict == exp_verdict
         if match:
             correct_count += 1
 
@@ -77,16 +77,18 @@ def run_evaluation() -> dict[str, Any]:
             if g_errors or not rules_present:
                 is_error_match = True
 
-        rows.append({
-            "pack": pack_stem,
-            "expected": exp_verdict,
-            "actual": actual_verdict,
-            "match": match,
-            "expected_rules": expected_triggered_ids,
-            "actual_rules": actual_triggered_ids,
-            "rules_match": rules_present,
-            "error_match": is_error_match,
-        })
+        rows.append(
+            {
+                "pack": pack_stem,
+                "expected": exp_verdict,
+                "actual": actual_verdict,
+                "match": match,
+                "expected_rules": expected_triggered_ids,
+                "actual_rules": actual_triggered_ids,
+                "rules_match": rules_present,
+                "error_match": is_error_match,
+            }
+        )
 
     eval_data = {
         "total": len(expected_verdicts),
@@ -108,7 +110,7 @@ def _write_report(eval_data: dict[str, Any], out_path: Path) -> None:
     lines = [
         "# Evaluation Report: Supplier Document Checker Pipeline",
         "",
-        f"**Accuracy:** {correct}/{total} ({correct/total*100:.1f}%) verdicts matching expected golden dataset.",
+        f"**Accuracy:** {correct}/{total} ({correct / total * 100:.1f}%) verdicts matching expected golden dataset.",
         "",
         "## Pack Verdict Evaluation",
         "",
@@ -127,13 +129,15 @@ def _write_report(eval_data: dict[str, Any], out_path: Path) -> None:
             f"| {r['pack']} | `{r['expected']}` | `{r['actual']}` | **{v_match}** | {r_match} | {act_rules_str} |"
         )
 
-    lines.extend([
-        "",
-        "## Confusion Matrix",
-        "",
-        "| Expected \\ Actual | APPROVE | REJECT | NEEDS_REVIEW |",
-        "| :--- | :---: | :---: | :---: |",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Confusion Matrix",
+            "",
+            "| Expected \\ Actual | APPROVE | REJECT | NEEDS_REVIEW |",
+            "| :--- | :---: | :---: | :---: |",
+        ]
+    )
 
     all_verdicts = [Verdict.APPROVE.value, Verdict.REJECT.value, Verdict.NEEDS_REVIEW.value]
     for exp in all_verdicts:
@@ -149,4 +153,3 @@ if __name__ == "__main__":
     result = run_evaluation()
     print(f"Evaluation complete: {result['correct']}/{result['total']} correct.")
     print("Report written to outputs/eval_report.md")
-

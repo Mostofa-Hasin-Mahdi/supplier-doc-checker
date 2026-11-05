@@ -1,5 +1,7 @@
 # Supplier Document Checker (`supplier-check`)
 
+[![CI](https://github.com/username/supplier-doc-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/username/supplier-doc-checker/actions/workflows/ci.yml)
+
 Automated supplier-document verification pipeline for procurement packs. Evaluates supplier packs against purchase requests and company rules, delivering deterministic verdicts: `APPROVE`, `REJECT`, or `NEEDS_REVIEW`.
 
 ## Project Principles

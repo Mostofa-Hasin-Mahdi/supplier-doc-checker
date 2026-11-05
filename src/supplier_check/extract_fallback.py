@@ -255,8 +255,16 @@ def extract_fallback_from_text(document_text: str) -> ExtractedQuote:
             terms_block,
             re.IGNORECASE,
         )
-    pay_quote = m_pay.group(1).strip() if m_pay and m_pay.lastindex else (m_pay.group(0).strip() if m_pay else terms_block)
-    pay_text = re.sub(r"^(?:1\.\s*)?Payment\.\s*", "", pay_quote, flags=re.IGNORECASE).strip() if m_pay else None
+    pay_quote = (
+        m_pay.group(1).strip()
+        if m_pay and m_pay.lastindex
+        else (m_pay.group(0).strip() if m_pay else terms_block)
+    )
+    pay_text = (
+        re.sub(r"^(?:1\.\s*)?Payment\.\s*", "", pay_quote, flags=re.IGNORECASE).strip()
+        if m_pay
+        else None
+    )
 
     adv_val, adv_uncertain = parse_advance(pay_text)
     if not adv_uncertain and adv_val is not None:
@@ -300,8 +308,16 @@ def extract_fallback_from_text(document_text: str) -> ExtractedQuote:
             terms_block,
             re.IGNORECASE,
         )
-    del_quote = m_del.group(1).strip() if m_del and m_del.lastindex else (m_del.group(0).strip() if m_del else terms_block)
-    del_text = re.sub(r"^(?:2\.\s*)?Delivery\.\s*", "", del_quote, flags=re.IGNORECASE).strip() if m_del else None
+    del_quote = (
+        m_del.group(1).strip()
+        if m_del and m_del.lastindex
+        else (m_del.group(0).strip() if m_del else terms_block)
+    )
+    del_text = (
+        re.sub(r"^(?:2\.\s*)?Delivery\.\s*", "", del_quote, flags=re.IGNORECASE).strip()
+        if m_del
+        else None
+    )
     del_days_val = parse_days(del_text)
 
     fe_del_terms = FieldEvidence[str](
@@ -383,8 +399,16 @@ def extract_fallback_from_text(document_text: str) -> ExtractedQuote:
             terms_block,
             re.IGNORECASE,
         )
-    val_quote = m_val.group(1).strip() if m_val and m_val.lastindex else (m_val.group(0).strip() if m_val else terms_block)
-    val_text = re.sub(r"^(?:[0-9]+\.\s*)?Validity\.\s*", "", val_quote, flags=re.IGNORECASE).strip() if m_val else None
+    val_quote = (
+        m_val.group(1).strip()
+        if m_val and m_val.lastindex
+        else (m_val.group(0).strip() if m_val else terms_block)
+    )
+    val_text = (
+        re.sub(r"^(?:[0-9]+\.\s*)?Validity\.\s*", "", val_quote, flags=re.IGNORECASE).strip()
+        if m_val
+        else None
+    )
     val_days = parse_days(val_text)
 
     if val_days is not None:

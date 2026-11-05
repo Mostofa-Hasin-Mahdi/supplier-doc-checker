@@ -424,3 +424,127 @@ def test_no_uncertain_field_can_ever_lead_to_approve() -> None:
         assert decision.verdict != Verdict.APPROVE, (
             f"Field '{field_name}' marked UNCERTAIN must NEVER produce APPROVE. Got: {decision.verdict}"
         )
+
+
+def _generate_text_pdf(path: Path, text_lines: list[str]) -> None:
+    """Helper to write a simple valid text PDF using pypdf primitives."""
+    from pypdf import PdfWriter
+    from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=612, height=792)
+    ops = ["BT", "/F1 10 Tf", "50 750 Td"]
+    first = True
+    for line in text_lines:
+        clean = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+        if first:
+            ops.append(f"({clean}) Tj")
+            first = False
+        else:
+            ops.append(f"0 -15 Td ({clean}) Tj")
+    ops.append("ET")
+    stream_data = "\n".join(ops).encode("latin-1")
+
+    stream = DecodedStreamObject()
+    stream.set_data(stream_data)
+    page[NameObject("/Contents")] = writer._add_object(stream)
+
+    font = DictionaryObject()
+    font[NameObject("/Type")] = NameObject("/Font")
+    font[NameObject("/Subtype")] = NameObject("/Type1")
+    font[NameObject("/BaseFont")] = NameObject("/Helvetica")
+    font_ref = writer._add_object(font)
+
+    resources = DictionaryObject()
+    resources[NameObject("/Font")] = DictionaryObject({NameObject("/F1"): font_ref})
+    page[NameObject("/Resources")] = writer._add_object(resources)
+
+    with open(path, "wb") as f:
+        writer.write(f)
+
+
+def test_unseen_layout_pdf_ends_in_needs_review(tmp_path: Path) -> None:
+    """A PDF with an unseen document layout yields UNCERTAIN fields and ends in NEEDS_REVIEW."""
+    unseen_lines = [
+        "ACME INDUSTRIAL SUPPLIES",
+        "Quotation no: QT-2026-999",
+        "Date: 2026-10-25",
+        "Purchase Order Ref: PR-2026-114",
+        "TIN: 101458013391",
+        "BIN: 000170141-0101",
+        "",
+        "PRODUCT CATALOG PRICING:",
+        "Item A - Cotton twill fabric, 280 gsm",
+        "Ordered amount: 12,000 metre",
+        "Offered price: 472.00 BDT per metre",
+        "Subtotal: 5,664,000.00 BDT",
+        "VAT at 15%: 849,600.00 BDT",
+        "Total Amount: 6,513,600.00 BDT",
+        "",
+        "TERMS AND CONDITIONS:",
+        "1. Advance Payment. 10% advance with order.",
+        "2. Payment. Balance within 45 days.",
+        "3. Delivery. 24 days.",
+        "4. Late Delivery. Penalty of 1% of order value per week of delay.",
+        "5. Validity. 45 days.",
+    ]
+    unseen_pdf = tmp_path / "unseen_layout.pdf"
+    _generate_text_pdf(unseen_pdf, unseen_lines)
+
+    checkpointer = MemorySaver()
+    app = build_supplier_checker_graph(checkpointer=checkpointer)
+    cfg = {"configurable": {"thread_id": "test_unseen_layout"}}
+
+    app.invoke(
+        {"pdf_path": str(unseen_pdf), "extractor_mode": "fallback"},
+        config=cfg,
+    )
+    state = app.get_state(cfg)
+    decision = state.values.get("decision")
+    assert decision is not None
+    # Must end in NEEDS_REVIEW, NEVER Approve or Reject
+    assert decision.verdict == Verdict.NEEDS_REVIEW
+    # Assert reasons name the unverifiable / uncertain fields
+    reasons_str = " ".join(decision.reasons)
+    assert (
+        "unverifiable" in reasons_str.lower()
+        or "could not verify" in reasons_str.lower()
+        or "undetermined" in reasons_str.lower()
+        or "grounding" in reasons_str.lower()
+    )
+
+
+def test_edited_copy_of_pack_produces_correct_result(tmp_path: Path) -> None:
+    """An edited copy of a sample pack PDF (higher price) through check produces a new, correct REJECT result."""
+    import json
+    import subprocess
+
+    from pypdf import PdfReader
+
+    pack01_r = PdfReader("data/supplier-pack-01.pdf")
+    orig_text = pack01_r.pages[0].extract_text()
+    # Change unit price from 472.00 to 600.00 (exceeding budget limit 480.00 -> REJECT)
+    mod_lines = orig_text.replace("472.00", "600.00").splitlines()
+
+    edited_pdf = tmp_path / "edited_pack_01.pdf"
+    _generate_text_pdf(edited_pdf, mod_lines)
+
+    res = subprocess.run(
+        [
+            "python",
+            "-m",
+            "supplier_check.cli",
+            "check",
+            str(edited_pdf),
+            "--mode",
+            "fallback",
+            "--json",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0
+    data = json.loads(res.stdout)
+    assert data["final_verdict"] == "Reject"
+    assert data["system_verdict"] == "Reject"
+    assert any("RULE_REJ_01_PRICE_MAX" in r["rule_id"] for r in data["triggered_rules"])

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import sqlite3
 from pathlib import Path
@@ -11,10 +12,13 @@ import typer
 from dotenv import load_dotenv
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
+from pypdf import PdfReader
+from pypdf.errors import EmptyFileError, PdfStreamError
 from rich.console import Console
 from rich.table import Table
 
-from supplier_check.graph import build_supplier_checker_graph
+from supplier_check.config import RulesConfig
+from supplier_check.graph import REQUIRED_PR_COLUMNS, build_supplier_checker_graph
 
 # Load environment variables (.env) so GEMINI_API_KEY is available when running CLI commands
 load_dotenv()
@@ -54,23 +58,88 @@ def _get_checkpointer(db_path: Path = DEFAULT_DB_PATH) -> SqliteSaver:
     return SqliteSaver(conn)
 
 
+def _validate_inputs(
+    pdf: Path | None,
+    pr_path: Path | None,
+    rules_path: Path | None,
+) -> None:
+    """Validate input paths with clear, user-friendly error messages."""
+    if pdf is not None:
+        if not pdf.exists():
+            console.print(f"[bold red]Error:[/] PDF file not found: {pdf}")
+            raise typer.Exit(code=1)
+        if pdf.suffix.lower() != ".pdf":
+            console.print(f"[bold red]Error:[/] Input file is not a PDF: {pdf}")
+            raise typer.Exit(code=1)
+        try:
+            reader = PdfReader(str(pdf))
+            if len(reader.pages) == 0:
+                console.print(f"[bold red]Error:[/] PDF has no pages: {pdf}")
+                raise typer.Exit(code=1)
+            # Try reading text from pages
+            _ = "\n".join(page.extract_text() or "" for page in reader.pages)
+        except (PdfStreamError, EmptyFileError) as e:
+            console.print(f"[bold red]Error:[/] PDF is corrupt or unreadable: {pdf} ({e})")
+            raise typer.Exit(code=1) from e
+        except Exception as e:
+            console.print(f"[bold red]Error:[/] Failed to read PDF {pdf}: {e}")
+            raise typer.Exit(code=1) from e
+
+    if pr_path is not None:
+        if not pr_path.exists():
+            console.print(f"[bold red]Error:[/] Purchase request file not found: {pr_path}")
+            raise typer.Exit(code=1)
+        try:
+            with pr_path.open(encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                fieldnames = set(reader.fieldnames or [])
+                missing_cols = REQUIRED_PR_COLUMNS - fieldnames
+                if missing_cols:
+                    console.print(
+                        f"[bold red]Error:[/] Purchase request file '{pr_path}' is missing required columns: {', '.join(sorted(missing_cols))}"
+                    )
+                    raise typer.Exit(code=1)
+        except Exception as e:
+            if isinstance(e, typer.Exit):
+                raise
+            console.print(
+                f"[bold red]Error:[/] Failed to read purchase request file {pr_path}: {e}"
+            )
+            raise typer.Exit(code=1) from e
+
+    if rules_path is not None:
+        if not rules_path.exists():
+            console.print(f"[bold red]Error:[/] Rules configuration file not found: {rules_path}")
+            raise typer.Exit(code=1)
+        try:
+            RulesConfig.from_yaml(rules_path)
+        except Exception as e:
+            console.print(f"[bold red]Error:[/] Invalid rules configuration in {rules_path}: {e}")
+            raise typer.Exit(code=1) from e
+
+
 @app.command()
 def check(
     pdf: Annotated[Path, typer.Argument(help="Path to supplier pack PDF file.")],
+    pr: Annotated[Path, typer.Option("--pr", help="Path to purchase-request.csv.")] = Path(
+        "data/purchase-request.csv"
+    ),
+    rules: Annotated[Path, typer.Option("--rules", help="Path to rules.yaml.")] = Path(
+        "config/rules.yaml"
+    ),
     interactive: Annotated[
         bool, typer.Option("--interactive", "-i", help="Prompt for decision if review is needed.")
     ] = False,
     mode: Annotated[
         str, typer.Option("--mode", "-m", help="Extractor mode: auto|fallback|llm|both.")
     ] = "auto",
+    as_json: Annotated[bool, typer.Option("--json", help="Output results in JSON format.")] = False,
     db: Annotated[
         Path, typer.Option("--db", help="Path to checkpoint database.")
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Run verification pipeline on a single supplier pack PDF."""
-    if not pdf.exists():
-        console.print(f"[bold red]Error:[/] PDF file not found: {pdf}")
-        raise typer.Exit(code=1)
+    _validate_inputs(pdf=pdf, pr_path=pr, rules_path=rules)
 
     thread_id = pdf.stem
     checkpointer = _get_checkpointer(db)
@@ -79,7 +148,12 @@ def check(
 
     try:
         graph_app.invoke(
-            {"pdf_path": str(pdf), "extractor_mode": mode},
+            {
+                "pdf_path": str(pdf),
+                "pr_csv_path": str(pr),
+                "rules_yaml_path": str(rules),
+                "extractor_mode": mode,
+            },
             config=config,
         )
     except Exception as e:
@@ -95,15 +169,34 @@ def check(
             state.tasks[0].interrupts[0].value if state.tasks and state.tasks[0].interrupts else {}
         )
         reasons = interrupt_val.get("reasons", [])
+        cleaned_trigs = _clean_triggered_rules(interrupt_val.get("triggered_rules", []))
 
-        console.print(f"\n[bold yellow]Pack {pdf.name} requires human review.[/]")
-        if reasons:
-            console.print("[bold]Reasons:[/]")
-            for r in reasons:
-                console.print(f"  - {r}")
+        if as_json:
+            json_payload = {
+                "pdf": str(pdf),
+                "pack": pdf.stem,
+                "system_verdict": "Needs a person to check",
+                "final_verdict": "Pending Review",
+                "extractor_used": state.values.get("extractor_used", mode),
+                "reasons": reasons,
+                "triggered_rules": cleaned_trigs,
+            }
+            typer.echo(json.dumps(json_payload, indent=2))
+            if not interactive:
+                raise typer.Exit(code=0)
+
+        if not as_json:
+            console.print(f"\n[bold yellow]Pack {pdf.name} requires human review.[/]")
+            if reasons:
+                console.print("[bold]Reasons:[/]")
+                for r in reasons:
+                    console.print(f"  - {r}")
 
         if not interactive:
-            console.print("\n[dim]Run with --interactive or use `review` command to resolve.[/]")
+            if not as_json:
+                console.print(
+                    "\n[dim]Run with --interactive or use `review` command to resolve.[/]"
+                )
             raise typer.Exit(code=0)
 
         # Interactive resolution prompt
@@ -118,9 +211,12 @@ def check(
                 config=config,
             )
             report = resumed.get("report")
-            console.print(f"\n[bold green]Resolved successfully:[/] {choice_clean}")
-            if report:
-                console.print(f"Final Verdict: [bold]{report.get('final_verdict')}[/]")
+            if as_json:
+                typer.echo(json.dumps(report, indent=2))
+            else:
+                console.print(f"\n[bold green]Resolved successfully:[/] {choice_clean}")
+                if report:
+                    console.print(f"Final Verdict: [bold]{report.get('final_verdict')}[/]")
         except Exception as e:
             console.print(f"[bold red]Failed to resume human review:[/] {e}")
             raise typer.Exit(code=1) from e
@@ -128,6 +224,10 @@ def check(
     else:
         # Completed without human intervention
         report = state.values.get("report") or {}
+        if as_json:
+            typer.echo(json.dumps(report, indent=2))
+            return
+
         verdict = report.get("final_verdict", "Unknown")
         color = "green" if verdict == "Approve" else ("red" if verdict == "Reject" else "yellow")
         console.print(f"\nPack: [bold]{pdf.name}[/]")
@@ -146,6 +246,12 @@ def check_all(
     directory: Annotated[
         Path, typer.Argument(help="Directory containing supplier pack PDFs.")
     ] = Path("data"),
+    pr: Annotated[Path, typer.Option("--pr", help="Path to purchase-request.csv.")] = Path(
+        "data/purchase-request.csv"
+    ),
+    rules: Annotated[Path, typer.Option("--rules", help="Path to rules.yaml.")] = Path(
+        "config/rules.yaml"
+    ),
     out: Annotated[Path, typer.Option("--out", "-o", help="Output directory for reports.")] = Path(
         "outputs"
     ),
@@ -157,6 +263,8 @@ def check_all(
     ] = DEFAULT_DB_PATH,
 ) -> None:
     """Run verification on all PDFs in a directory, queueing reviews without blocking."""
+    _validate_inputs(pdf=None, pr_path=pr, rules_path=rules)
+
     if not directory.exists() or not directory.is_dir():
         console.print(f"[bold red]Error:[/] Directory not found: {directory}")
         raise typer.Exit(code=1)
@@ -188,7 +296,12 @@ def check_all(
         cfg = {"configurable": {"thread_id": thread_id}}
         try:
             graph_app.invoke(
-                {"pdf_path": str(pdf), "extractor_mode": mode},
+                {
+                    "pdf_path": str(pdf),
+                    "pr_csv_path": str(pr),
+                    "rules_yaml_path": str(rules),
+                    "extractor_mode": mode,
+                },
                 config=cfg,
             )
         except Exception as e:

@@ -78,6 +78,7 @@ class PipelineState(TypedDict, total=False):
     raw_text: str
     pr_items: list[PurchaseRequestItem]
     pr_csv_path: str | None
+    rules_yaml_path: str | None
     extracted_quote: ExtractedQuote | None
     extractor_used: str
     grounding_errors: list[str]
@@ -101,13 +102,30 @@ def _log_event(state: PipelineState, message: str) -> None:
     logger.info(entry)
 
 
+REQUIRED_PR_COLUMNS = {
+    "PR number",
+    "Item",
+    "Description",
+    "Unit",
+    "Quantity requested",
+    "Maximum unit price (BDT)",
+}
+
+
 def _load_default_pr_items(csv_path: str | Path | None = None) -> list[PurchaseRequestItem]:
     """Load PR items from data/purchase-request.csv or provided path."""
     target_path = Path(csv_path or "data/purchase-request.csv")
     if not target_path.exists():
-        return []
+        raise FileNotFoundError(f"Purchase request file not found: {target_path}")
     with target_path.open(encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
+        reader = csv.DictReader(f)
+        fieldnames = set(reader.fieldnames or [])
+        missing_cols = REQUIRED_PR_COLUMNS - fieldnames
+        if missing_cols:
+            raise ValueError(
+                f"Purchase request file '{target_path}' is missing required columns: {', '.join(sorted(missing_cols))}"
+            )
+        rows = list(reader)
     items: list[PurchaseRequestItem] = []
     for r in rows:
         items.append(
@@ -407,7 +425,12 @@ def node_compare(state: PipelineState) -> dict[str, Any]:
     """Match quote with PR items and run price/quantity comparisons."""
     quote = state.get("extracted_quote")
     pr_items = state.get("pr_items") or []
-    config = state.get("config") or RulesConfig.from_yaml("config/rules.yaml")
+    rules_path = state.get("rules_yaml_path")
+    config = state.get("config") or (
+        RulesConfig.from_yaml(rules_path)
+        if rules_path
+        else RulesConfig.from_yaml("config/rules.yaml")
+    )
     results = list(state.get("rule_results") or [])
 
     if quote is None or not pr_items:
@@ -450,7 +473,12 @@ def node_compare(state: PipelineState) -> dict[str, Any]:
 def node_rules(state: PipelineState) -> dict[str, Any]:
     """Execute all deterministic procurement policy rules."""
     quote = state.get("extracted_quote")
-    config = state.get("config") or RulesConfig.from_yaml("config/rules.yaml")
+    rules_path = state.get("rules_yaml_path")
+    config = state.get("config") or (
+        RulesConfig.from_yaml(rules_path)
+        if rules_path
+        else RulesConfig.from_yaml("config/rules.yaml")
+    )
     results = list(state.get("rule_results") or [])
 
     if quote is None:
